@@ -282,12 +282,12 @@ func (h *Handlers) CreateApp(c echo.Context) error {
 		SubjectType:         "app",
 		SubjectID:           created.ID,
 		Payload: map[string]any{
-			"slug":             created.Slug,
-			"github_repo":      req.RepoOwner + "/" + req.RepoName,
-			"branch":           branch,
-			"git_sha":          sha,
-			"app_version_id":   versionID,
-			"evidence_count":   len(evidence),
+			"slug":           created.Slug,
+			"github_repo":    req.RepoOwner + "/" + req.RepoName,
+			"branch":         branch,
+			"git_sha":        sha,
+			"app_version_id": versionID,
+			"evidence_count": len(evidence),
 		},
 	})
 	h.reportSARIFWouldBlock(ctx, sarifgate.Subject{
@@ -301,10 +301,10 @@ func (h *Handlers) CreateApp(c echo.Context) error {
 	}, sarifWouldBlock)
 
 	return c.JSON(http.StatusCreated, map[string]any{
-		"id":                   created.ID.String(),
-		"slug":                 created.Slug,
-		"state":                string(created.State),
-		"github_repo":          req.RepoOwner + "/" + req.RepoName,
+		"id":                    created.ID.String(),
+		"slug":                  created.Slug,
+		"state":                 string(created.State),
+		"github_repo":           req.RepoOwner + "/" + req.RepoName,
 		"github_default_branch": branch,
 		"app_version": map[string]any{
 			"id":      versionID,

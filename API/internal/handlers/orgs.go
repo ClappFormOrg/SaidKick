@@ -171,8 +171,8 @@ func (h *Handlers) ConfigureOrganizationOIDC(c echo.Context) error {
 		SubjectType:         "organization",
 		SubjectID:           org.ID,
 		Payload: map[string]any{
-			"slug":    org.Slug,
-			"issuer":  issuer,
+			"slug":   org.Slug,
+			"issuer": issuer,
 			"secret_scheme": func() string {
 				if idx := strings.Index(secretRef, ":"); idx >= 0 {
 					return secretRef[:idx]

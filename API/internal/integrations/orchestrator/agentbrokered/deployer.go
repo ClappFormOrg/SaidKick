@@ -31,10 +31,10 @@ import (
 )
 
 const (
-	commandTTL             = 24 * time.Hour
-	applyCommandType       = "apply"
-	deleteCommandType      = "delete"
-	rollbackCommandType    = "rollback"
+	commandTTL          = 24 * time.Hour
+	applyCommandType    = "apply"
+	deleteCommandType   = "delete"
+	rollbackCommandType = "rollback"
 )
 
 // ── Payload structs ────────────────────────────────────────────────────────────
@@ -42,16 +42,16 @@ const (
 // identical JSON field names — snake_case throughout.
 
 type applyPayload struct {
-	DeploymentID  string                `json:"deployment_id"`
-	AppSlug       string                `json:"app_slug"`
-	ClusterID     string                `json:"cluster_id"`
-	Namespace     string                `json:"namespace"`
-	Project       string                `json:"project"`
-	GitHubRepoURL string                `json:"github_repo_url"`
-	GitSHA        string                `json:"git_sha"`
-	ChartPath     string                `json:"chart_path"`
-	Values        json.RawMessage       `json:"values"`
-	SecretRefs    []applyPayloadSecRef  `json:"secret_refs"`
+	DeploymentID  string               `json:"deployment_id"`
+	AppSlug       string               `json:"app_slug"`
+	ClusterID     string               `json:"cluster_id"`
+	Namespace     string               `json:"namespace"`
+	Project       string               `json:"project"`
+	GitHubRepoURL string               `json:"github_repo_url"`
+	GitSHA        string               `json:"git_sha"`
+	ChartPath     string               `json:"chart_path"`
+	Values        json.RawMessage      `json:"values"`
+	SecretRefs    []applyPayloadSecRef `json:"secret_refs"`
 }
 
 type applyPayloadSecRef struct {

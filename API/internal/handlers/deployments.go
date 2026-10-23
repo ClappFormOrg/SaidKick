@@ -361,13 +361,13 @@ func (h *Handlers) CreateDeployment(c echo.Context) error {
 		SubjectType:         "deployment",
 		SubjectID:           dep.ID,
 		Payload: map[string]any{
-			"app_slug":         app.Slug,
-			"app_version_id":   version.ID.String(),
-			"git_sha":          version.GitSHA,
-			"cluster_id":       cluster.ID.String(),
-			"cluster_name":     cluster.EffectiveOrchestratorName(),
-			"namespace":        effectiveNamespace,
-			"argocd_app_name":  ref.ApplicationName,
+			"app_slug":           app.Slug,
+			"app_version_id":     version.ID.String(),
+			"git_sha":            version.GitSHA,
+			"cluster_id":         cluster.ID.String(),
+			"cluster_name":       cluster.EffectiveOrchestratorName(),
+			"namespace":          effectiveNamespace,
+			"argocd_app_name":    ref.ApplicationName,
 			"secret_field_count": len(refs),
 		},
 	})
@@ -523,8 +523,8 @@ func (h *Handlers) DeleteDeployment(c echo.Context) error {
 
 // UpgradeDeploymentRequest is the body of POST /api/v1/deployments/:id/upgrade.
 type UpgradeDeploymentRequest struct {
-	ToVersionID    string            `json:"to_version_id"`
-	NewValues      json.RawMessage   `json:"new_values"`
+	ToVersionID     string            `json:"to_version_id"`
+	NewValues       json.RawMessage   `json:"new_values"`
 	NewSecretInputs map[string]string `json:"new_secret_inputs"`
 }
 
@@ -822,7 +822,7 @@ func (h *Handlers) RollbackDeployment(c echo.Context) error {
 			ActorOrganizationID: &p.OrganizationID,
 			SubjectType:         "deployment",
 			SubjectID:           dep.ID,
-			Payload: map[string]any{"target_version_id": targetVersionID.String(), "error": err.Error()},
+			Payload:             map[string]any{"target_version_id": targetVersionID.String(), "error": err.Error()},
 		})
 		if errors.Is(err, orchestrator.ErrNotConfigured) {
 			return apierror.New(http.StatusServiceUnavailable, "orchestrator_not_configured",
@@ -956,13 +956,13 @@ func (h *Handlers) StreamDeploymentEvents(c echo.Context) error {
 
 			if status.Phase != lastPhase {
 				if !push("state", map[string]any{
-					"deployment_id": dep.ID.String(),
-					"phase":         string(status.Phase),
-					"revision":      status.Revision,
-					"healthy":       status.Healthy,
-					"message":       status.Message,
+					"deployment_id":  dep.ID.String(),
+					"phase":          string(status.Phase),
+					"revision":       status.Revision,
+					"healthy":        status.Healthy,
+					"message":        status.Message,
 					"last_synced_at": status.LastSyncedAt,
-					"source":        "orchestrator",
+					"source":         "orchestrator",
 				}) {
 					return nil
 				}

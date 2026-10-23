@@ -30,7 +30,7 @@ type cachedDiscussions struct {
 }
 
 var (
-	discussionsCache   sync.Map
+	discussionsCache    sync.Map
 	discussionsCacheTTL = 5 * time.Minute
 )
 

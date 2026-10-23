@@ -197,11 +197,11 @@ func (m *AppManifest) ValidateEvidence(
 	}
 	targets := make([]target, 0, 7+len(m.Spec.Demo.Screenshots))
 	targets = append(targets,
-		target{logical: "description",   field: "spec.demo.description",        pathStr: m.Spec.Demo.Description},
-		target{logical: "dpia",          field: "spec.audit.dpia",              pathStr: m.Spec.Audit.DPIA},
-		target{logical: "security_scan", field: "spec.audit.security_scan",     pathStr: m.Spec.Audit.SecurityScan},
-		target{logical: "ai_risk",       field: "spec.audit.ai_risk",           pathStr: m.Spec.Audit.AIRisk},
-		target{logical: "accessibility", field: "spec.audit.accessibility",     pathStr: m.Spec.Audit.Accessibility},
+		target{logical: "description", field: "spec.demo.description", pathStr: m.Spec.Demo.Description},
+		target{logical: "dpia", field: "spec.audit.dpia", pathStr: m.Spec.Audit.DPIA},
+		target{logical: "security_scan", field: "spec.audit.security_scan", pathStr: m.Spec.Audit.SecurityScan},
+		target{logical: "ai_risk", field: "spec.audit.ai_risk", pathStr: m.Spec.Audit.AIRisk},
+		target{logical: "accessibility", field: "spec.audit.accessibility", pathStr: m.Spec.Audit.Accessibility},
 	)
 	for i, s := range m.Spec.Demo.Screenshots {
 		targets = append(targets, target{

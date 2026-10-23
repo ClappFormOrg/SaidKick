@@ -22,10 +22,10 @@ import (
 //
 // Usage: create once at startup, pass to NewVaultStoreWithAppRole. Thread-safe.
 type AppRoleCache struct {
-	addr  string // Vault base URL, no trailing slash
-	mount string // AppRole auth mount, e.g. "approle"
-	mu    sync.Mutex
-	cache map[uuid.UUID]cachedEntry
+	addr       string // Vault base URL, no trailing slash
+	mount      string // AppRole auth mount, e.g. "approle"
+	mu         sync.Mutex
+	cache      map[uuid.UUID]cachedEntry
 	httpClient *http.Client
 }
 

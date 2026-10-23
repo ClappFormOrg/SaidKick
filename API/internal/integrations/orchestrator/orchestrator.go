@@ -153,14 +153,14 @@ func NewDeploymentRef(applicationName string, clusterID uuid.UUID) DeploymentRef
 type Phase string
 
 const (
-	PhaseUnknown     Phase = ""             // zero value — uninitialized
-	PhasePending     Phase = "pending"      // application created, not yet synced
-	PhaseApplying    Phase = "applying"     // sync in progress
-	PhaseSecretSync  Phase = "secret_sync"  // application created; ExternalSecrets pulling
-	PhaseReconciling Phase = "reconciling"  // synced but not yet healthy
-	PhaseReady       Phase = "ready"        // synced + healthy
-	PhaseDegraded    Phase = "degraded"     // healthy at some point, now degraded
-	PhaseFailed      Phase = "failed"       // unrecoverable without operator action
+	PhaseUnknown     Phase = ""            // zero value — uninitialized
+	PhasePending     Phase = "pending"     // application created, not yet synced
+	PhaseApplying    Phase = "applying"    // sync in progress
+	PhaseSecretSync  Phase = "secret_sync" // application created; ExternalSecrets pulling
+	PhaseReconciling Phase = "reconciling" // synced but not yet healthy
+	PhaseReady       Phase = "ready"       // synced + healthy
+	PhaseDegraded    Phase = "degraded"    // healthy at some point, now degraded
+	PhaseFailed      Phase = "failed"      // unrecoverable without operator action
 )
 
 // DeploymentStatus is the result of Deployer.Status. Implementations

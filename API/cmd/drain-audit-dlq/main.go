@@ -28,7 +28,7 @@ func main() {
 }
 
 func run() int {
-	batch  := flag.Int("batch", 100, "DLQ rows to process per iteration")
+	batch := flag.Int("batch", 100, "DLQ rows to process per iteration")
 	dryRun := flag.Bool("dry-run", false, "print rows that would be drained without writing")
 	flag.Parse()
 

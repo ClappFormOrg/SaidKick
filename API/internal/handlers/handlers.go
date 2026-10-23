@@ -29,20 +29,20 @@ type Handlers struct {
 	Secrets          secrets.Store
 	OIDCSecrets      *auth.SecretRefStore
 	OIDCAuth         *auth.OIDCAuthenticator
-	PKI              vault.PKISigner     // signs agent CSRs via Vault PKI
-	JoinSecret       []byte              // HMAC key for cluster join-token JWTs
-	HubEndpoint      string              // public base URL returned in handshake response
-	HubAgentEndpoint string              // agent mTLS listener URL; printed as agent.hubAgentUrl in the install command
-	VaultMount       string              // KV v2 mount; printed as vault.mount in the agent install command
+	PKI              vault.PKISigner // signs agent CSRs via Vault PKI
+	JoinSecret       []byte          // HMAC key for cluster join-token JWTs
+	HubEndpoint      string          // public base URL returned in handshake response
+	HubAgentEndpoint string          // agent mTLS listener URL; printed as agent.hubAgentUrl in the install command
+	VaultMount       string          // KV v2 mount; printed as vault.mount in the agent install command
 	// AgentChartRepo is the OCI repository of the agent chart in the install
 	// command (AGENT_CHART_REPO); empty uses config.DefaultAgentChartRepo.
 	AgentChartRepo string
 	// AgentChartVersion is printed as --version in the install command
 	// (AGENT_CHART_VERSION); empty leaves the flag out.
 	AgentChartVersion string
-	AgentAuth        echo.MiddlewareFunc // mTLS / dev-mode agent authentication
-	CommunityToken   string              // GitHub PAT for discussions proxy (empty = disabled)
-	CommunityRepo    string              // "owner/repo" of the community GitHub repo
+	AgentAuth         echo.MiddlewareFunc // mTLS / dev-mode agent authentication
+	CommunityToken    string              // GitHub PAT for discussions proxy (empty = disabled)
+	CommunityRepo     string              // "owner/repo" of the community GitHub repo
 
 	// AgentCertTTL is the lifetime of agent client certificates issued by
 	// the handshake and the renew route. Zero means 90 days.

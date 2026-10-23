@@ -289,7 +289,9 @@ func chartPathFromVersion(v models.AppVersion) string {
 	}
 	var m struct {
 		Spec struct {
-			Chart struct{ Path string `json:"path"` } `json:"chart"`
+			Chart struct {
+				Path string `json:"path"`
+			} `json:"chart"`
 		} `json:"spec"`
 	}
 	if err := json.Unmarshal(v.AppstoreYAML, &m); err != nil {

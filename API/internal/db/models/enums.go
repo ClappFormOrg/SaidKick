@@ -100,7 +100,7 @@ const (
 type ClusterScope string
 
 const (
-	ClusterScopeUnknown    ClusterScope = ""            // zero value — uninitialized
+	ClusterScopeUnknown    ClusterScope = ""           // zero value — uninitialized
 	ClusterScopePublic     ClusterScope = "public"     // visible and deployable by every org
 	ClusterScopeOrg        ClusterScope = "org"        // visible and deployable by owning org only
 	ClusterScopeRestricted ClusterScope = "restricted" // visible and deployable by owning org plus orgs with an explicit ClusterAccessGrant
@@ -132,21 +132,21 @@ var AllClusterStates = []ClusterState{
 type DeploymentState string
 
 const (
-	DeploymentUnknown               DeploymentState = "" // zero value — uninitialized
-	DeploymentPending               DeploymentState = "pending"
-	DeploymentWaitingForCluster     DeploymentState = "waiting_for_cluster"
-	DeploymentApplying              DeploymentState = "applying"
-	DeploymentSecretSync            DeploymentState = "secret_sync"
-	DeploymentReconciling           DeploymentState = "reconciling"
-	DeploymentReady                 DeploymentState = "ready"
-	DeploymentDegraded              DeploymentState = "degraded"
-	DeploymentFailedRender          DeploymentState = "failed_render"
-	DeploymentFailedVault           DeploymentState = "failed_vault"
-	DeploymentFailedOrchestrator    DeploymentState = "failed_orchestrator"
-	DeploymentFailedSecretSync      DeploymentState = "failed_secret_sync"
-	DeploymentPendingOrchestrator   DeploymentState = "pending_orchestrator"
-	DeploymentDeleting              DeploymentState = "deleting"
-	DeploymentDeleted               DeploymentState = "deleted"
+	DeploymentUnknown             DeploymentState = "" // zero value — uninitialized
+	DeploymentPending             DeploymentState = "pending"
+	DeploymentWaitingForCluster   DeploymentState = "waiting_for_cluster"
+	DeploymentApplying            DeploymentState = "applying"
+	DeploymentSecretSync          DeploymentState = "secret_sync"
+	DeploymentReconciling         DeploymentState = "reconciling"
+	DeploymentReady               DeploymentState = "ready"
+	DeploymentDegraded            DeploymentState = "degraded"
+	DeploymentFailedRender        DeploymentState = "failed_render"
+	DeploymentFailedVault         DeploymentState = "failed_vault"
+	DeploymentFailedOrchestrator  DeploymentState = "failed_orchestrator"
+	DeploymentFailedSecretSync    DeploymentState = "failed_secret_sync"
+	DeploymentPendingOrchestrator DeploymentState = "pending_orchestrator"
+	DeploymentDeleting            DeploymentState = "deleting"
+	DeploymentDeleted             DeploymentState = "deleted"
 )
 
 var AllDeploymentStates = []DeploymentState{

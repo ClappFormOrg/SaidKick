@@ -489,8 +489,8 @@ func loadClusterConfig(devMode bool, authBaseURL string) (ClusterConfig, error) 
 	}
 
 	return ClusterConfig{
-		JoinSecret:       []byte(secret),
-		HubEndpoint:      hubEndpoint,
+		JoinSecret:        []byte(secret),
+		HubEndpoint:       hubEndpoint,
 		HubAgentEndpoint:  strings.TrimRight(os.Getenv("CLUSTER_HUB_AGENT_ENDPOINT"), "/"),
 		AgentChartRepo:    strings.TrimRight(defaultStr("AGENT_CHART_REPO", DefaultAgentChartRepo), "/"),
 		AgentChartVersion: strings.TrimSpace(os.Getenv("AGENT_CHART_VERSION")),

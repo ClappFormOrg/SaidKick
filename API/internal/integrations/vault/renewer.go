@@ -16,8 +16,8 @@ import (
 // intervals. Tokens that do not expire (TTL == 0, e.g. root tokens) are a
 // no-op. Start it with go renewer.Run(ctx); it exits when ctx is cancelled.
 type TokenRenewer struct {
-	addr  string
-	token string
+	addr       string
+	token      string
 	httpClient *http.Client
 }
 

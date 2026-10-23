@@ -26,7 +26,7 @@ import (
 type SecretRefStore struct {
 	kvClient      vault.KVClient
 	encryptionKey string // base64-encoded 32-byte AES-256 key; empty = not set
-	isDevMode       bool
+	isDevMode     bool
 }
 
 // NewSecretRefStore constructs a SecretRefStore. kvClient may be a NullClient
@@ -36,7 +36,7 @@ func NewSecretRefStore(kvClient vault.KVClient, encryptionKey string, isDevMode 
 	return &SecretRefStore{
 		kvClient:      kvClient,
 		encryptionKey: encryptionKey,
-		isDevMode:       isDevMode,
+		isDevMode:     isDevMode,
 	}
 }
 

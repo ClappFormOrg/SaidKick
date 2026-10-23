@@ -48,11 +48,11 @@ type seedFile struct {
 }
 
 type seedOrg struct {
-	Slug                string `json:"slug"`
-	DisplayName         string `json:"display_name"`
-	ContactEmail        string `json:"contact_email"`
-	OIDCIssuer          string `json:"oidc_issuer"`
-	OIDCClientID        string `json:"oidc_client_id"`
+	Slug         string `json:"slug"`
+	DisplayName  string `json:"display_name"`
+	ContactEmail string `json:"contact_email"`
+	OIDCIssuer   string `json:"oidc_issuer"`
+	OIDCClientID string `json:"oidc_client_id"`
 	// OIDCClientSecretEnv is the NAME of the env var that holds the plain
 	// client secret. Never put the secret itself in the seed file.
 	OIDCClientSecretEnv string `json:"oidc_client_secret_env"`
@@ -217,8 +217,8 @@ func applyOrg(ctx context.Context, handle *db.Handle, store *auth.SecretRefStore
 			return models.Organization{}, fmt.Errorf("store oidc secret: %w", err)
 		}
 		oidcUpdates := map[string]any{
-			"oidc_issuer":           so.OIDCIssuer,
-			"oidc_client_id":        so.OIDCClientID,
+			"oidc_issuer":            so.OIDCIssuer,
+			"oidc_client_id":         so.OIDCClientID,
 			"oidc_client_secret_ref": ref,
 		}
 		if err := handle.RW.WithContext(ctx).Model(&org).Updates(oidcUpdates).Error; err != nil {

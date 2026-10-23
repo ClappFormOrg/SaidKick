@@ -28,16 +28,16 @@ const maxAuditCommentLength = 10_000
 // listSubRow is the flattened scan target for ListAuditSubmissions, joining
 // audit_submissions → app_versions → apps in a single query.
 type listSubRow struct {
-	AuditID       string    `gorm:"column:audit_id"`
-	AutoValidationState  string    `gorm:"column:auto_validation_state"`
-	FormVersion   string    `gorm:"column:form_version"`
-	CreatedAt     time.Time `gorm:"column:created_at"`
-	AppSlug       string    `gorm:"column:app_slug"`
-	AppName       string    `gorm:"column:app_name"`
-	AppRiskClass  string    `gorm:"column:app_risk_class"`
-	AppOrgID      string    `gorm:"column:app_org_id"`
-	VersionGitRef string    `gorm:"column:version_git_ref"`
-	VersionGitSHA string    `gorm:"column:version_git_sha"`
+	AuditID             string    `gorm:"column:audit_id"`
+	AutoValidationState string    `gorm:"column:auto_validation_state"`
+	FormVersion         string    `gorm:"column:form_version"`
+	CreatedAt           time.Time `gorm:"column:created_at"`
+	AppSlug             string    `gorm:"column:app_slug"`
+	AppName             string    `gorm:"column:app_name"`
+	AppRiskClass        string    `gorm:"column:app_risk_class"`
+	AppOrgID            string    `gorm:"column:app_org_id"`
+	VersionGitRef       string    `gorm:"column:version_git_ref"`
+	VersionGitSHA       string    `gorm:"column:version_git_sha"`
 }
 
 // ListAuditSubmissions returns the queue of submissions for the auditor.
@@ -161,14 +161,14 @@ func (h *Handlers) GetAuditSubmission(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
-		"id":                    sub.ID.String(),
-		"app_version_id":        sub.AppVersionID.String(),
-		"form_responses":        sub.FormResponses,
-		"form_version":          sub.FormVersion,
-		"evidence_files":        sub.EvidenceFiles,
-		"auto_validation_state": string(sub.AutoValidationState),
+		"id":                     sub.ID.String(),
+		"app_version_id":         sub.AppVersionID.String(),
+		"form_responses":         sub.FormResponses,
+		"form_version":           sub.FormVersion,
+		"evidence_files":         sub.EvidenceFiles,
+		"auto_validation_state":  string(sub.AutoValidationState),
 		"auto_validation_errors": sub.AutoValidationErrors,
-		"created_at":            sub.CreatedAt,
+		"created_at":             sub.CreatedAt,
 		"app": map[string]any{
 			"id":                     app.ID.String(),
 			"slug":                   app.Slug,
@@ -508,11 +508,11 @@ func (h *Handlers) DecideAuditSubmission(c echo.Context) error {
 		SubjectType:         "app",
 		SubjectID:           subjectApp.ID,
 		Payload: map[string]any{
-			"app_slug":             subjectApp.Slug,
-			"audit_submission_id":  newDecision.AuditSubmissionID.String(),
-			"decision":             string(newDecision.Decision),
-			"rationale":            newDecision.Rationale,
-			"subject_org_id":       subjectApp.OwningOrganizationID.String(),
+			"app_slug":            subjectApp.Slug,
+			"audit_submission_id": newDecision.AuditSubmissionID.String(),
+			"decision":            string(newDecision.Decision),
+			"rationale":           newDecision.Rationale,
+			"subject_org_id":      subjectApp.OwningOrganizationID.String(),
 		},
 	})
 

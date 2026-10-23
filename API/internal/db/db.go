@@ -2,7 +2,7 @@
 // Appstore API. Two logical roles are expected on the Postgres side:
 //
 //   - `app_rw`         : full read/write on every table EXCEPT audit_logs.
-//                        It can SELECT audit_logs but not INSERT/UPDATE/DELETE.
+//     It can SELECT audit_logs but not INSERT/UPDATE/DELETE.
 //   - `audit_writer`   : INSERT-only on audit_logs. No UPDATE / DELETE.
 //
 // The application opens one connection pool per role; business code uses

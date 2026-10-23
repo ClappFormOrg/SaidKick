@@ -324,11 +324,11 @@ type argoApplicationResponse struct {
 			Revision string `json:"revision"` // current SHA
 		} `json:"sync"`
 		Health struct {
-			Status  string `json:"status"`  // "Healthy", "Progressing", "Degraded", "Suspended", "Missing", "Unknown"
+			Status  string `json:"status"` // "Healthy", "Progressing", "Degraded", "Suspended", "Missing", "Unknown"
 			Message string `json:"message"`
 		} `json:"health"`
 		OperationState struct {
-			Phase     string    `json:"phase"`
+			Phase      string    `json:"phase"`
 			FinishedAt time.Time `json:"finishedAt"`
 		} `json:"operationState"`
 	} `json:"status"`

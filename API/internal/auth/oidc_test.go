@@ -289,9 +289,9 @@ func TestOIDCCallback(t *testing.T) {
 	t.Run("happy_path_provisions_user_and_sets_session_cookie", func(t *testing.T) {
 		t.Parallel()
 		const clientID = "test-client-id"
-		const sub      = "idp-subject-001"
-		const email    = "floor@gemeente.nl"
-		const nonce    = "abc123"
+		const sub = "idp-subject-001"
+		const email = "floor@gemeente.nl"
+		const nonce = "abc123"
 
 		idp := newMockIDP(t, clientID, sub, email)
 		a, e := newTestAuthenticator(t)
@@ -341,9 +341,9 @@ func TestOIDCCallback(t *testing.T) {
 	t.Run("seed_link_fires_only_when_email_verified", func(t *testing.T) {
 		t.Parallel()
 		const clientID = "seed-client"
-		const sub      = "real-idp-sub"
-		const email    = "seeded.admin@gemeente.nl"
-		const nonce    = "seed-nonce"
+		const sub = "real-idp-sub"
+		const email = "seeded.admin@gemeente.nl"
+		const nonce = "seed-nonce"
 
 		idp := newMockIDP(t, clientID, sub, email)
 		idp.emailVerified = ptrBool(true)
@@ -374,9 +374,9 @@ func TestOIDCCallback(t *testing.T) {
 	t.Run("seed_link_refused_when_email_unverified", func(t *testing.T) {
 		t.Parallel()
 		const clientID = "seed-client-2"
-		const sub      = "attacker-idp-sub"
-		const email    = "seeded.admin2@gemeente.nl"
-		const nonce    = "seed-nonce-2"
+		const sub = "attacker-idp-sub"
+		const email = "seeded.admin2@gemeente.nl"
+		const nonce = "seed-nonce-2"
 
 		idp := newMockIDP(t, clientID, sub, email)
 		idp.emailVerified = ptrBool(false) // attacker's IdP does not verify email
@@ -408,8 +408,8 @@ func TestOIDCCallback(t *testing.T) {
 	t.Run("second_login_updates_profile_not_duplicates", func(t *testing.T) {
 		t.Parallel()
 		const clientID = "client-x"
-		const sub      = "returning-user-sub"
-		const nonce    = "nonce-x"
+		const sub = "returning-user-sub"
+		const nonce = "nonce-x"
 
 		idp := newMockIDP(t, clientID, sub, "original@example.nl")
 		a, e := newTestAuthenticator(t)

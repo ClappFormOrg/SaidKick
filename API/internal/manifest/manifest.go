@@ -113,9 +113,9 @@ type Audit struct {
 // AIBlock declares classification, base model, and the data-residency
 // invariant (EU-only).
 type AIBlock struct {
-	RiskClass      string `yaml:"risk_class"      json:"risk_class"`
-	BaseModel      string `yaml:"base_model"      json:"base_model"`
-	DataResidency  string `yaml:"data_residency"  json:"data_residency"`
+	RiskClass     string `yaml:"risk_class"      json:"risk_class"`
+	BaseModel     string `yaml:"base_model"      json:"base_model"`
+	DataResidency string `yaml:"data_residency"  json:"data_residency"`
 }
 
 // SlugRegex is the allowed pattern for Metadata.Name (and the App.Slug

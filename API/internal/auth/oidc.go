@@ -440,8 +440,8 @@ func (a *OIDCAuthenticator) provisionUser(
 	}
 
 	updates := map[string]any{
-		"email":        email,
-		"display_name": displayName,
+		"email":         email,
+		"display_name":  displayName,
 		"last_login_at": now,
 	}
 	if err := a.handle.RW.WithContext(ctx).Model(&user).Updates(updates).Error; err != nil {

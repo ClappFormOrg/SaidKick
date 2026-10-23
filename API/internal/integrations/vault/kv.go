@@ -40,9 +40,9 @@ type KVClient interface {
 // Client is the production KVClient backed by a real Vault instance via
 // the KV v2 HTTP API. Auth uses a static token.
 type Client struct {
-	addr   string // base URL, no trailing slash
-	token  string
-	mount  string // KV v2 mount, e.g. "kv"
+	addr       string // base URL, no trailing slash
+	token      string
+	mount      string // KV v2 mount, e.g. "kv"
 	httpClient *http.Client
 }
 
