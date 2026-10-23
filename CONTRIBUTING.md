@@ -1,5 +1,9 @@
 # Contributing to sAId-Kick Appstore
 
+Taking part in this project means following our
+[Code of Conduct](CODE_OF_CONDUCT.md). Found a security problem? Do not open
+an issue — [SECURITY.md](SECURITY.md) says how to report it privately.
+
 ## Licence
 
 The sAId-Kick Appstore platform (this repository) is licensed under the
