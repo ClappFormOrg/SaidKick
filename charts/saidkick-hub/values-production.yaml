@@ -1,0 +1,105 @@
+# sAId-Kick Hub — production overrides template.
+#
+# Copy this file, fill in every <REPLACE> placeholder, and pass it to Helm:
+#   helm upgrade --install saidkick-hub ./charts/saidkick-hub \
+#     --namespace saidkick-system --create-namespace \
+#     --values charts/saidkick-hub/values-production.yaml
+#
+# Keep this file out of version control (add to .gitignore) — it contains
+# secrets. Use a secrets manager (Azure Key Vault + External Secrets, SOPS,
+# Sealed Secrets) in real pipelines.
+
+api:
+  replicaCount: 3
+
+  config:
+    authBaseUrl: "https://<REPLACE: appstore.example.nl>"
+    # Empty means a host-only session cookie: the browser sends it only to
+    # the host that set it. The API and webapp share one host, so no other
+    # host needs it. Set a domain only if the API and webapp are served from
+    # different hosts.
+    authCookieDomain: ""
+    clusterHubEndpoint: "https://<REPLACE: appstore.example.nl>"
+    # Address of the api.agentListener Service as agents reach it.
+    clusterHubAgentEndpoint: "https://<REPLACE: agents.appstore.example.nl>:8443"
+    httpTrustedProxies: "<REPLACE: 10.0.0.0/8>"
+    # orchestratorKind stays at the chart default, "agent" (ADR-4). The API
+    # refuses "argocd" in production, so there are no Argo CD credentials here.
+
+  # Agent mTLS listener. Both Secrets must exist before install; see the
+  # comments on api.agentListener in values.yaml for the bao commands.
+  agentListener:
+    enabled: true
+    servingCertSecret: "<REPLACE: saidkick-agent-listener-tls>"
+    clientCASecret: "<REPLACE: saidkick-agent-client-ca>"
+
+  secrets:
+    # openssl rand -base64 32
+    authSessionSecret: "<REPLACE>"
+    # openssl rand -base64 32
+    authSecretEncryptionKey: "<REPLACE>"
+    # openssl rand -base64 32
+    clusterJoinSecret: "<REPLACE>"
+
+    # Retrieve password: kubectl get secret saidkick.saidkick-hub-postgresql.credentials.postgresql.acid.zalan.do \
+    #   -n saidkick-system -o jsonpath='{.data.password}' | base64 -d
+    databaseUrl: "postgres://saidkick:<REPLACE: password>@saidkick-hub-postgresql:5432/saidkick_appstore?sslmode=require"
+    auditDatabaseUrl: ""
+
+    vaultAddr: "https://<REPLACE: openbao.internal.example.nl>"
+    vaultToken: "<REPLACE>"
+
+    githubAppId: "<REPLACE>"
+    githubAppPrivateKey: |
+      -----BEGIN RSA PRIVATE KEY-----
+      <REPLACE>
+      -----END RSA PRIVATE KEY-----
+    githubWebhookSecret: "<REPLACE>"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+
+webapp:
+  replicaCount: 3
+  config:
+    # Origin only; the webapp adds /api/v1 and /auth paths itself.
+    apiBase: "https://<REPLACE: appstore.example.nl>"
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  host: "<REPLACE: appstore.example.nl>"
+  tls:
+    enabled: true
+    secretName: saidkick-hub-tls
+
+postgresql:
+  enabled: true
+  # Operator is typically pre-installed cluster-wide in production.
+  # Set to true only if this is the first/only tenant on this cluster.
+  operator:
+    enabled: false
+  instances: 2  # HA — requires at least 2 worker nodes
+  persistence:
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+
+openbao:
+  enabled: false  # Use pre-existing OpenBao / Vault in production
+
+victoriametrics:
+  enabled: true
+
+argocd:
+  enabled: false  # Each spoke runs its own Argo CD (ADR-4)

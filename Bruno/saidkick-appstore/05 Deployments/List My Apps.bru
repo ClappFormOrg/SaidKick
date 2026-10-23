@@ -1,0 +1,42 @@
+meta {
+  name: List My Apps
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/my-apps?page=1&page_size=20
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+params:query {
+  page: 1
+  page_size: 20
+}
+
+docs {
+  The app launcher: live deployments owned by the caller's own organisation,
+  with a URL to open each one or a maintainer to ask. Open to every signed-in
+  principal, whatever its roles.
+
+  Validation / behaviour:
+    1. Authentication required; no role gate.
+    2. Scoped to the caller's organisation for every role, platform_admin included.
+    3. Excludes deployments in state deleting or deleted, and soft-deleted rows.
+    4. availability is available, degraded, preparing or unavailable; an unknown state reports unavailable.
+    5. url is derived from values.ingress.host (https unless ingress.tls is false) and is present only
+       when the host is a valid DNS name and availability is available or degraded.
+    6. Never returns values, secret_refs, namespace, cluster_id or the raw state.
+    7. Paginated, ordered created_at DESC.
+
+  Responses:
+    200 OK           — { items: [{ deployment_id, app_slug, display_name, categories, cluster_name?,
+                         availability, access, url?, maintainer: { name?, email?, vendor_name?,
+                         vendor_contact? } }], total, page, page_size }
+    401 unauthorized — unauthenticated
+}

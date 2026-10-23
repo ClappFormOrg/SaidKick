@@ -1,0 +1,44 @@
+meta {
+  name: Configure Org OIDC
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/orgs/{{orgSlug}}/oidc
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "oidc_issuer": "https://login.microsoftonline.com/<tenant-id>/v2.0",
+    "oidc_client_id": "00000000-0000-0000-0000-000000000000",
+    "oidc_client_secret": "rotate-me-in-vault-once-sprint-3-lands"
+  }
+}
+
+docs {
+  Sets the federated IdP settings for one organisation. PlatformAdmin only.
+
+  Validation / behaviour:
+    1. Authentication required; PlatformAdmin role enforced.
+    2. org slug validated against ^[a-z][a-z0-9-]{1,38}[a-z0-9]$ — 404 if invalid.
+    3. oidc_issuer, oidc_client_id, and oidc_client_secret are all required.
+    4. Client secret written to OIDCSecrets store (Vault > AES-256-GCM in DB > v0-inline).
+    5. Organisation row updated with issuer, client_id, secret_ref.
+    6. OIDC provider cache invalidated for this org.
+    7. Write org.oidc_configured to audit_logs.
+
+  Responses:
+    200 OK                         — updated org object (secret not echoed back)
+    401 unauthorized               — unauthenticated
+    404 not_found                  — organisation not found
+    422 validation_failed          — any required field missing
+    503 secret_storage_unavailable — secret store write failed
+}

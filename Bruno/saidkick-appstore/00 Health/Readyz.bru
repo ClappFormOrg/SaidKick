@@ -1,0 +1,17 @@
+meta {
+  name: Readyz
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/readyz
+  body: none
+  auth: none
+}
+
+docs {
+  Readiness probe. Pings the DB pool with a 2-second budget.
+  Returns 200 {"status":"ready"} on success or 503 with a reason field
+  on failure.
+}

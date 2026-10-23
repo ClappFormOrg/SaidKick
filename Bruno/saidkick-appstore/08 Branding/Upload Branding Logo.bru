@@ -1,0 +1,44 @@
+meta {
+  name: Upload Branding Logo
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/branding/logo
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+body:multipart-form {
+  file: @file(logo.png)
+  alt: Gemeente Voorbeeld
+}
+
+docs {
+  Stores a new logo. platform_admin only. Point the file part at a local PNG.
+
+  Validation / behaviour:
+    1. Body capped at 1 MB (413 payload_too_large).
+    2. file: PNG signature sniffed (declared type and name ignored), at most
+       512 KB, 16x16 to 2000x800 pixels (read from the header before the
+       image is decoded), fully decoded so a corrupt body is refused.
+    3. alt: 1 to 255 characters; whitespace folded.
+    4. Nothing is stored on rejection.
+    5. Writes branding.logo_updated to audit_logs with before/after
+       { width, height, alt, size_bytes, sha256 } (never the bytes).
+
+  Enabling a custom logo on a public production instance needs Rijkshuisstijl
+  sign-off.
+
+  Responses:
+    200 OK — same body as GET /api/v1/branding
+    401 unauthorized / 403 forbidden — not platform_admin
+    413 payload_too_large
+    422 validation_failed — file: required | too_large | unsupported_type |
+        invalid_image | invalid_dimensions; alt: invalid
+}

@@ -1,0 +1,37 @@
+apiVersion: v2
+name: saidkick-hub
+description: |
+  sAId-Kick Appstore — Hub deployment.
+  Installs the API, Webapp, and optional infrastructure subcharts
+  (PostgreSQL, OpenBao, VictoriaMetrics) on the central orchestration
+  cluster. Deployments reach spokes through their agents; the Argo CD
+  subchart is off by default.
+type: application
+version: 0.2.0
+appVersion: 0.2.0
+maintainers:
+  - name: Clappform
+    email: platform@clappform.com
+    url: https://github.com/ClappFormOrg/SaidKick
+keywords:
+  - saidkick
+  - ai-appstore
+  - govnl
+dependencies:
+  - name: postgres-operator
+    version: 1.x.x
+    repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+    condition: postgresql.operator.enabled
+  - name: openbao
+    version: 0.x.x
+    repository: https://openbao.github.io/openbao-helm
+    condition: openbao.enabled
+  - name: victoria-metrics-single
+    version: 0.x.x
+    repository: https://victoriametrics.github.io/helm-charts/
+    condition: victoriametrics.enabled
+  - name: argo-cd
+    version: 8.x.x
+    repository: https://argoproj.github.io/argo-helm
+    condition: argocd.enabled
+    alias: argocd

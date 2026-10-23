@@ -1,0 +1,29 @@
+meta {
+  name: Logout
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/auth/logout
+  body: none
+  auth: none
+}
+
+docs {
+  Clears the saidkick_session cookie and returns 204 No Content.
+  No request body is required.
+
+  The presented session's jti is recorded in revoked_sessions until the
+  token's own expiry, so replaying the old cookie value afterwards gets
+  401. A missing, malformed or expired cookie needs no row; the endpoint
+  still returns 204. Sessions minted before the jti claim existed cannot
+  be revoked and age out within one session TTL.
+
+  Responses:
+    204 No Content — session revoked and cookie cleared (Set-Cookie: saidkick_session=; MaxAge=-1)
+
+  NOTE: In dev mode (APP_DEV_MODE=true) there is no session cookie — the
+  DevModeAuthenticator uses the X-Dev-User-ID header instead. This
+  endpoint is a no-op in dev mode (the cookie clear is harmless).
+}

@@ -1,0 +1,57 @@
+# Smoke-deploy values — used by scripts/kind-e2e/run.sh to install the hub
+# chart into an ephemeral kind cluster and prove the API boots, migrates, and
+# serves /healthz + /readyz. NEVER use these values for real.
+#
+# The heavy infra subcharts (Zalando Postgres Operator, OpenBao, VictoriaMetrics,
+# Argo CD) are disabled: the smoke provides its own plain Postgres, the API runs
+# with a NullStore for secrets (no Vault), and api.config.orchestratorKind keeps
+# the chart default, "agent", which needs no Argo CD server. /readyz (a DB
+# ping) still passes.
+
+api:
+  replicaCount: 1
+  image:
+    # Built locally and side-loaded into the kind node; never pulled.
+    repository: saidkick-api
+    tag: ci
+    pullPolicy: Never
+  config:
+    # "ci" is in the API's dev env allow-list, so isProdLikeEnv() is false and
+    # the production-only CORS requirement does not apply. APP_DEV_MODE is left
+    # unset, so header-auth dev bypass stays OFF.
+    appEnv: ci
+    authBaseUrl: http://saidkick-hub.local
+  # No agent mTLS listener: the smoke registers no agents, and "ci" is a
+  # dev-like appEnv, so neither the chart nor the API requires its TLS files.
+  agentListener:
+    enabled: false
+  # api.secrets.{authSessionSecret,clusterJoinSecret,databaseUrl} are NOT set
+  # here on purpose — run.sh generates them and layers them on from
+  # .work/hub-values.yaml, so no credential-shaped strings live in the repo
+  # (nothing for a secret scanner to flag). The chart marks them required, so
+  # the install always supplies them from that second values file.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# Keep the smoke API-focused and fast. Flip to true (and build/load the webapp
+# image) to also validate the webapp deployment. run.sh turns it back on in its
+# own values file and checks the webapp CSP nonce.
+webapp:
+  enabled: false
+
+# Disable every infra subchart — the smoke supplies its own Postgres.
+postgresql:
+  enabled: false
+  operator:
+    enabled: false
+openbao:
+  enabled: false
+victoriametrics:
+  enabled: false
+argocd:
+  enabled: false

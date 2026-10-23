@@ -1,0 +1,2 @@
+# Removed: Zalando Postgres Operator creates the master service ({clusterName})
+# and replica service ({clusterName}-repl) automatically.

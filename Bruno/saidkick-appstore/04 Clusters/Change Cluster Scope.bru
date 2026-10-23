@@ -1,0 +1,45 @@
+meta {
+  name: Change Cluster Scope
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/clusters/{{clusterId}}/scope
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "new_scope": "public",
+    "reason": "Promoting to public catalogue per programme owner approval ticket SAIDKICK-42."
+  }
+}
+
+docs {
+  Promotes or demotes a cluster between public and an org-scoped visibility. PlatformAdmin only.
+
+  Validation / behaviour:
+    1. Authentication required; PlatformAdmin role enforced — ClusterAdmin gets 403.
+    2. Parse cluster ID — 404 if not found.
+    3. reason field is required (any non-empty string).
+    4. new_scope must be "public", "org", or "restricted" — 422 on invalid value.
+       For org/restricted, owning_org_id is also required.
+    5. No-op check: 409 if new_scope already matches the current scope.
+    6. Update cluster row (scope + owning_organization_id) in a transaction.
+    7. Write cluster.scope_changed to audit_logs with before/after scope and reason.
+
+  Responses:
+    200 OK            — updated cluster object
+    401 unauthorized  — unauthenticated
+    403 forbidden     — caller is not PlatformAdmin
+    404 not_found     — cluster not found
+    409 no_op         — cluster is already in that scope
+    422 validation_failed — reason missing or new_scope format invalid
+}

@@ -1,0 +1,31 @@
+meta {
+  name: List Clusters
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/clusters
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+docs {
+  Returns all clusters visible to the caller, ordered by name ASC.
+
+  Validation / behaviour:
+    1. Authentication required — anonymous requests get 401.
+    2. Visibility rules: PlatformAdmin sees all; everyone else sees:
+         - scope=public clusters
+         - scope=org clusters where owning_organization_id matches the caller's org
+         - scope=restricted clusters the caller's org owns or has a ClusterAccessGrant row for
+    3. Optional query params scope and state filter the result set further.
+
+  Responses:
+    200 OK           — { items: [Cluster] }
+    401 unauthorized — no authenticated principal
+}

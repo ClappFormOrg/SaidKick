@@ -1,0 +1,48 @@
+sAId-Kick Agent deployed to spoke cluster.
+
+Cluster ID : {{ .Values.agent.clusterID }}
+Hub        : {{ .Values.agent.hubUrl }}
+Namespace  : {{ .Values.namespace }}
+
+Watch the agent complete its handshake:
+  kubectl logs -n {{ .Values.namespace }} \
+    -l app.kubernetes.io/name=saidkick-agent -f
+
+Expected log lines (in order):
+  1. "loading join token"
+  2. "performing handshake with hub"
+  3. "mTLS cert issued, writing to secret"
+  4. "connected to hub — ready"
+
+Check cluster state on the hub:
+  curl -H "X-Dev-User-ID: <admin-uuid>" \
+    https://<hub>/api/v1/clusters/{{ .Values.agent.clusterID }}
+
+  Expect: "state": "ready"
+
+{{- if .Values.secretStore.enabled }}
+
+ESO SecretStore:
+  kubectl get secretstore {{ .Values.secretStore.name }} \
+    -n {{ include "saidkick-agent.secretStoreNamespace" . }}
+
+  Status should show: Valid = true
+  If it shows a connection error, verify:
+    - vault.addr is reachable from this cluster
+    - vault.token has read access to kv/data/deployments/*
+    - The saidkick-vault-credentials Secret contains the correct token
+    - External Secrets Operator (installed before this chart) is running:
+        kubectl get pods -A -l app.kubernetes.io/name=external-secrets
+
+{{- end }}
+
+{{- if .Values.argocd.enabled }}
+
+Argo CD (spoke):
+  kubectl get pods -n {{ .Values.namespace }} \
+    -l app.kubernetes.io/name=argocd-application-controller
+
+{{- end }}
+
+After the cluster is in state "ready", the hub can deploy applications to it.
+See charts/saidkick-hub/README.md for next steps.

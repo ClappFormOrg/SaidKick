@@ -1,0 +1,29 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - gocritic
+    - revive
+  settings:
+    errcheck:
+      # _ = x() is used intentionally for fire-and-forget (audit log, deferred
+      # background cleanup). Don't flag those.
+      check-blank: false
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - hugeParam        # would require widespread interface signature changes
+        - rangeValCopy     # mechanical but noisy across large model types
+        - unnamedResult    # style preference, not a correctness issue
+
+    revive:
+      rules:
+        - name: unused-parameter
+        - name: var-naming

@@ -1,0 +1,53 @@
+meta {
+  name: GitHub Push (manual)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/webhooks/github
+  body: json
+  auth: none
+}
+
+headers {
+  X-GitHub-Event: push
+  X-Hub-Signature-256: sha256=REPLACE_WITH_HMAC
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "ref": "refs/heads/main",
+    "before": "0000000000000000000000000000000000000000",
+    "after":  "1111111111111111111111111111111111111111",
+    "repository": {
+      "name": "govchat",
+      "owner": { "name": "ClappFormOrg", "login": "ClappFormOrg" }
+    },
+    "pusher": { "name": "maya-dev" }
+  }
+}
+
+docs {
+  Synthetic push event for testing the webhook receiver.
+
+  HMAC IS REQUIRED. The X-Hub-Signature-256 header must be:
+    sha256=<lowercase-hex of HMAC_SHA256(body, GITHUB_WEBHOOK_SECRET)>
+
+  Easiest way to generate from PowerShell:
+
+    $secret = '<your GITHUB_WEBHOOK_SECRET>'
+    $body   = Get-Content '.\body.json' -Raw
+    $hmac   = New-Object System.Security.Cryptography.HMACSHA256
+    $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($secret)
+    $hash   = $hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($body))
+    'sha256=' + [BitConverter]::ToString($hash).Replace('-','').ToLower()
+
+  Expected responses:
+    200 — accepted, push acknowledged. If a linked App exists for this
+          repo+branch, an `app.revalidation_queued` row lands in
+          audit_logs.
+    401 invalid_signature — HMAC mismatch.
+    503 github_not_configured — GITHUB_WEBHOOK_SECRET is unset.
+}

@@ -1,0 +1,90 @@
+# The sAId-Kick agent needs limited cluster permissions to:
+#   1. Watch its own namespace (for health, config reloads).
+#   2. Create/update/delete ExternalSecret CRs in deployment namespaces
+#      (so it can provision secrets after the hub creates a deployment).
+#   3. Read Argo CD Application status (to stream events back to the hub).
+#
+# Cluster-wide RBAC is kept to a minimum — the agent does NOT need
+# cluster-admin or access to node-level resources.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "saidkick-agent.fullname" . }}
+  labels:
+    {{- include "saidkick-agent.labels" . | nindent 4 }}
+rules:
+  # Read Argo CD Application status across all namespaces.
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications", "applicationsets"]
+    verbs: ["get", "list", "watch"]
+
+  # Manage ExternalSecret CRs in any namespace (create per-deployment secrets).
+  - apiGroups: ["external-secrets.io"]
+    resources: ["externalsecrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Read SecretStore status (to check ESO health).
+  - apiGroups: ["external-secrets.io"]
+    resources: ["secretstores", "clustersecretstores"]
+    verbs: ["get", "list", "watch"]
+
+  # Read namespace list (for scoped operations).
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+
+  # Create/manage namespaces for new deployments.
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "saidkick-agent.fullname" . }}
+  labels:
+    {{- include "saidkick-agent.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "saidkick-agent.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "saidkick-agent.serviceAccountName" . }}
+    namespace: {{ .Values.namespace }}
+---
+# Namespaced role for the agent's own namespace (config, secrets, status).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "saidkick-agent.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "saidkick-agent.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "create", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "saidkick-agent.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "saidkick-agent.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "saidkick-agent.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "saidkick-agent.serviceAccountName" . }}
+    namespace: {{ .Values.namespace }}

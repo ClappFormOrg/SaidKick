@@ -1,0 +1,46 @@
+meta {
+  name: Create App Version
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/apps/{{appSlug}}/versions
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "git_ref": "v1.2.0"
+  }
+}
+
+docs {
+  Register a new AppVersion at a specific git ref (tag or branch).
+  Re-fetches the manifest + evidence at the new SHA, runs Stage-1
+  validation, and persists a fresh AuditSubmission so the auditor flow
+  can pick it up.
+
+  Validation / behaviour:
+    1. Developer role + owning-org check.
+    2. Resolve git_ref to a commit SHA via the GitHub App.
+    3. Fetch appstore.yaml + run schema validation.
+    4. Verify manifest slug matches existing App.slug (slugs are immutable).
+    5. Stage-1 evidence validation (fetch + content-type check).
+    6. Fetch Chart.yaml + values.schema.json.
+    7. Persist AppVersion + AuditSubmission in one transaction.
+
+  Responses:
+    201 created        — new version row
+    404 not_found      — app slug not found
+    403 forbidden      — not in owning org
+    409 version_already_exists — same commit SHA already recorded
+    422 validation     — manifest or evidence failed
+    503 github_not_configured
+}

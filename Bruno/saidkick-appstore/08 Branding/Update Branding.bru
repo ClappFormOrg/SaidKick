@@ -1,0 +1,48 @@
+meta {
+  name: Update Branding
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/branding
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "cta": "#0b5cad",
+    "primary": "#1a1a6e",
+    "secondary": "#eef3ff",
+    "surface": "#f7f7f7",
+    "body_text": "#111111",
+    "border": "#d0d0d0"
+  }
+}
+
+docs {
+  Replaces the six colours. platform_admin only.
+
+  Validation / behaviour:
+    1. Each colour must be #RRGGBB (either case); stored lowercase.
+    2. The palette must pass WCAG AA (4.5:1) on eight text pairs: white on
+       the CTA colour and its hover shade, white on primary and its hover
+       shade, primary on white, primary on secondary, body text on white,
+       body text on surface. Otherwise 422 and nothing is stored.
+    3. Writes branding.updated to audit_logs with before/after colours.
+
+  Responses:
+    200 OK — same body as GET /api/v1/branding
+    400 bad_request — body is not JSON
+    401 unauthorized / 403 forbidden — not platform_admin
+    422 validation_failed — errors[].path is the colour field
+        (code invalid_color) or contrast.<pair> (code contrast_too_low);
+        details.contrast_failures lists { pair, foreground, background,
+        ratio, required } for each failing pair
+}

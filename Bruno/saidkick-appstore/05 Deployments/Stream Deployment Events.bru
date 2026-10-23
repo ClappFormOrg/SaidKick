@@ -1,0 +1,38 @@
+meta {
+  name: Stream Deployment Events (SSE)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/deployments/{{deploymentId}}/events
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Accept: text/event-stream
+}
+
+docs {
+  Server-Sent Events stream. The connection stays open until one of:
+    - the deployment reaches a terminal phase (ready / failed),
+    - the orchestrator reports the Application is gone,
+    - the client disconnects,
+    - the 10-minute hard cap is reached.
+
+  Event types emitted:
+    event: state    — { deployment_id, phase, revision, healthy, message, source }
+    event: warn     — { message }   (transient upstream errors; stream stays open)
+    event: end      — { reason, phase? }
+
+  V1 implementation polls Orchestrator.Status every 2 seconds. Sprint 2
+  swaps polling for push events from Argo CD webhooks.
+
+  IMPORTANT: Bruno's response viewer does not natively render SSE.
+  Use curl for a proper interactive view:
+
+    curl -N -H "X-Dev-User-ID: <uuid>" \
+         http://localhost:8080/api/v1/deployments/<id>/events
+}

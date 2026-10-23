@@ -1,0 +1,125 @@
+# sAId-Kick Appstore API
+
+> Go REST API that manages the lifecycle of government AI applications: submission, audit, and deployment to Kubernetes clusters.
+
+## Purpose
+
+sAId-Kick Appstore is a platform for Dutch government organisations (ministries, provinces and municipalities) to submit, audit, and deploy AI applications. Suppliers register their apps via a GitHub-linked submission flow; government auditors review evidence (DPIA, SARIF security scan, AI-risk assessment); deployers push approved versions to registered Kubernetes clusters via Argo CD.
+
+## Key concepts
+
+- **App** — a government AI application, linked to a GitHub repo. One App has many AppVersions.
+- **AppVersion** — a specific commit SHA + Helm chart snapshot submitted for audit.
+- **AuditSubmission** — the audit package for one AppVersion; goes through `pending → under_review → approved/rejected`.
+- **Deployment** — one AppVersion running on one Cluster in one namespace. Secrets stored in Vault; Helm values stored in the DB.
+- **Cluster** — a registered Kubernetes cluster. Scope is `public` or `org:<uuid>`.
+- **Organisation** — a tenant. Users belong to one org; OIDC federation is per-org.
+- **AuditLog** — append-only, hash-chained record of all compliance-significant events. Tamper-evident via SHA-256 chain.
+
+## Architecture
+
+- **Language**: Go 1.23+
+- **HTTP**: Echo v4
+- **ORM**: GORM v1.26 + pgx (PostgreSQL 16)
+- **Migrations**: gormigrate v2 (versioned, ordered)
+- **Auth**: OIDC RP with PKCE per-org federation (production) or `X-Dev-User-ID` header (dev mode)
+- **Secrets**: HashiCorp Vault KV v2; in-memory fallback for dev; AES-256-GCM DB encryption as middle tier
+- **Orchestrator**: Argo CD via REST API; `NullDeployer` fallback
+- **Audit log**: PostgreSQL append-only table, DB trigger enforces no UPDATE/DELETE, advisory lock serialises hash-chain advances
+
+## Repository layout
+
+```
+API/
+  cmd/api/main.go              entry point (config → DB → migrate → HTTP)
+  cmd/agent/main.go            standalone cluster agent binary (heartbeat + state reporting)
+  cmd/agentinit/main.go        init-container that performs the one-time cluster handshake
+  cmd/seed/main.go             dev-only seed tool (orgs, users, apps from JSON file)
+  internal/
+    apierror/                  shared error envelope (breaks import cycle)
+    audit/                     AuditLog writer service
+    auth/                      OIDC RP middleware, dev-mode authenticator, RBAC principal
+    config/                    env-driven Config struct
+    db/
+      db.go                    two-role connection pool (RW + AuditWriter)
+      migrate.go               gormigrate runner + InitSchema + extra DDL
+      models/                  GORM entities (App, AppVersion, Deployment, Cluster, …)
+    handlers/                  HTTP transport, one file per domain
+    manifest/                  appstore.yaml schema + evidence validation
+    reconciler/                background Argo CD status poller (30s tick)
+    revalidation/              background worker that re-runs auto-validation on push
+    server/                    Echo wrapper, middleware, error handler
+    integrations/
+      github/                  GitHub App client (rate-limited, NullClient fallback)
+      orchestrator/            Deployer interface + ArgoCDDeployer + agent-brokered + NullDeployer
+      secrets/                 Store interface + VaultStore + InMemoryStore + NullStore
+      vault/                   Vault KV v2 client + PKI client + token renewer
+Bruno/saidkick-appstore/           Bruno HTTP collection (31 requests, all endpoints)
+docker/postgres/                   custom Postgres 16 dev image
+```
+
+## Entry points
+
+- `GET /healthz` — liveness probe
+- `GET /readyz` — readiness probe (DB ping)
+- `GET /auth/login?org=<slug>` — start OIDC login flow
+- `GET /auth/callback` — OIDC callback
+- `POST /api/v1/orgs` — create organisation
+- `POST /api/v1/apps` — register app (requires GitHub App)
+- `POST /api/v1/apps/:slug/versions` — submit new app version
+- `POST /api/v1/audit-submissions/:id/decision` — approve or reject
+- `POST /api/v1/deployments` — deploy approved version to cluster
+- `GET /api/v1/deployments/:id/events` — SSE live deployment status
+- `POST /api/v1/webhooks/github` — GitHub App webhook receiver
+
+## Key files
+
+- `API/internal/db/migrate.go` — schema migrations; add new migrations here
+- `API/internal/auth/oidc.go` — OIDC RP middleware (login, callback, logout)
+- `API/internal/auth/secretref.go` — tiered OIDC client secret storage
+- `API/internal/handlers/handlers.go` — dependency container + route registration
+- `API/internal/config/config.go` — all env vars with defaults
+- `API/.env.example` — local dev environment template
+- `API/Makefile` — all dev targets (run, migrate, test, dev-db, vet, fmt)
+
+## Environment variables (required for production)
+
+### API (`cmd/api`)
+- `DATABASE_URL` — PostgreSQL DSN
+- `AUTH_SESSION_SECRET` — HMAC key ≥ 32 bytes (`openssl rand -base64 32`)
+- `AUTH_BASE_URL` — public API URL, no trailing slash
+- `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` / `GITHUB_WEBHOOK_SECRET` — GitHub App
+- `VAULT_ADDR` / `VAULT_TOKEN` — HashiCorp Vault (optional; dev falls back to in-memory)
+- `ORCHESTRATOR_KIND=agent` — agent-brokered deployments (production; ADR-4)
+- `ORCHESTRATOR_KIND=argocd` / `ARGOCD_SERVER_URL` / `ARGOCD_AUTH_TOKEN` — direct Argo CD client, refused unless `APP_ENV` is dev/development/local/test/ci
+- `CLUSTER_JOIN_SECRET` — HMAC key for one-time cluster handshake JWTs
+
+### Cluster agent (`cmd/agent`)
+- `SAIDKICK_HUB_URL` — hub base URL (e.g. `https://hub.appstore.gov.nl`)
+- `SAIDKICK_CLUSTER_ID` — cluster UUID registered on the hub
+- `SAIDKICK_AGENT_CERT` / `SAIDKICK_AGENT_KEY` / `SAIDKICK_HUB_CA` — mTLS certs
+- `SAIDKICK_DEV_MODE=true` — skip mTLS, use `X-Agent-Cluster-ID` header (dev only)
+- `SAIDKICK_HEARTBEAT_INTERVAL` — heartbeat cadence (default `30s`)
+- `SAIDKICK_STATUS_INTERVAL` — Argo CD status poll cadence (default `15s`)
+
+### Cluster init container (`cmd/agentinit`)
+- `SAIDKICK_HUB_URL` / `SAIDKICK_CLUSTER_ID` / `SAIDKICK_JOIN_TOKEN` — required
+- `SAIDKICK_CERT_DIR` — directory for cert output (default `/tmp`)
+- `SAIDKICK_K8S_SECRET_NAME` — Kubernetes Secret to patch with cert material
+
+## Development
+
+```sh
+cd API
+make tidy       # download modules
+make dev-db     # start dev Postgres container
+cp .env.example .env
+make run        # migrate + serve on :8080
+```
+
+See `API/RUNBOOK.md` for seeding users, Vault setup, and OIDC configuration.
+See `CONTRIBUTING.md` for commit style and DCO sign-off requirements.
+
+## License
+
+EUPL-1.2 — European Union Public Licence v1.2

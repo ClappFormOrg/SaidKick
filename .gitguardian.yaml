@@ -1,0 +1,13 @@
+# GitGuardian (ggshield) config. There is no CI here, so run it yourself
+# before pushing:
+#
+#   ggshield secret scan repo .
+#
+# The only matches in this repository's fixtures are intentionally-fake
+# placeholder credentials used to lint the Helm charts and to run the kind
+# end-to-end flow. Ignore those paths so they don't raise incidents. Real
+# deployments inject their credentials at helm-install time.
+version: 2
+secret:
+  ignored-paths:
+    - "charts/**/ci/**"

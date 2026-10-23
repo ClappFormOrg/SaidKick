@@ -1,0 +1,37 @@
+meta {
+  name: List Deployments
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/deployments?page=1&page_size=20
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+params:query {
+  page: 1
+  page_size: 20
+  ~state:
+  ~app_id:
+  ~cluster_id:
+}
+
+docs {
+  Returns deployments visible to the caller. Requires authentication.
+
+  Validation / behaviour:
+    1. Authentication required.
+    2. PlatformAdmin sees all; OrgAdmin sees their org; everyone else sees only their own (deployer_user_id = caller).
+    3. Optional filters: state, app_id (UUID), cluster_id (UUID).
+    4. Paginated, ordered created_at DESC.
+
+  Responses:
+    200 OK         — { items, total, page, page_size }
+    401 unauthorized — unauthenticated
+}

@@ -1,0 +1,33 @@
+# Nuxt
+.nuxt/
+.output/
+.nitro/
+.cache/
+
+# Dependencies
+node_modules/
+
+# Build artefacts
+dist/
+
+# Environment — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

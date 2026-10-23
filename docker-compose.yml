@@ -1,0 +1,63 @@
+# sAId-Kick Appstore — local dev stack.
+#
+# Brings up Postgres, OpenBao (secret store), and VictoriaMetrics (metrics).
+# The API itself is started separately via `make run` so hot-reload works.
+#
+# Usage:
+#   docker compose up -d          # start all services
+#   docker compose down -v        # stop + wipe volumes
+#
+# Services:
+#   postgres        — saidkick_appstore DB (custom image, pre-creates roles)
+#   openbao         — OpenBao dev server (KV v2 at :8200)
+#   victoriametrics — time-series DB that scrapes /metrics at :8480
+
+services:
+
+  postgres:
+    build:
+      context: ./docker/postgres
+    container_name: saidkick-appstore-pg
+    environment:
+      POSTGRES_DB: saidkick_appstore
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "saidkick_appstore"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  openbao:
+    image: openbao/openbao:latest
+    container_name: saidkick-openbao-dev
+    command: server -dev
+    environment:
+      BAO_DEV_ROOT_TOKEN_ID: dev-token
+      BAO_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "bao", "status", "-address=http://127.0.0.1:8200"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: saidkick-victoriametrics
+    command:
+      - -promscrape.config=/etc/victoriametrics/scrape.yml
+      - -retentionPeriod=1
+    ports:
+      - "8480:8428"
+    volumes:
+      - ./docker/victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
+      - victoriametrics_data:/victoria-metrics-data
+
+volumes:
+  victoriametrics_data:

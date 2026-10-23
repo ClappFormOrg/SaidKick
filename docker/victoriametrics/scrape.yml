@@ -1,0 +1,13 @@
+# VictoriaMetrics scrape config for local development.
+# Scrapes the sAId-Kick API's /metrics endpoint every 15 seconds.
+# The API is expected to run on the host (via `make run`) with its metrics
+# listener on METRICS_ADDR, default :9090.
+
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: saidkick-api
+    static_configs:
+      - targets:
+          - host.docker.internal:9090

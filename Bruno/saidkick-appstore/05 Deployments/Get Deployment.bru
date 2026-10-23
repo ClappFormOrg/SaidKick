@@ -1,0 +1,39 @@
+meta {
+  name: Get Deployment
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/deployments/{{deploymentId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+docs {
+  Returns one deployment with optional live orchestrator status. RBAC scoping mirrors List Deployments:
+    PlatformAdmin : any deployment
+    OrgAdmin      : deployments in their organisation
+    everyone else : only their own (deployer_user_id = caller)
+
+  Validation / behaviour:
+    1. Authentication required — 401 if no principal.
+    2. Parse deployment ID — 404 if invalid UUID or not found.
+    3. Apply RBAC visibility check — 403 if caller lacks access.
+    4. Enrich response with app_slug (from App row) and values_schema (from AppVersion row)
+       so the frontend can render the reconfigure form without extra requests.
+    5. When the deployment has a last_argocd_app_name and is not in a terminal state,
+       poll Orchestrator.Status synchronously and include live_status:
+       { phase, message, last_synced_at, revision, healthy }.
+       Orchestrator failures are silenced — the persisted DB state is authoritative.
+
+  Responses:
+    200 OK        — deployment row with app_slug, values_schema, and optional live_status
+    401 unauthorized — unauthenticated
+    403 forbidden — caller cannot see this deployment
+    404 not_found — deployment not found
+}

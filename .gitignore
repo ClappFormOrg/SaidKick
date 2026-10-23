@@ -1,0 +1,66 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# LaTeX build artifacts
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.nav
+*.snm
+*.vrb
+
+# Generated PDFs (keep source, ignore build output)
+docs/**/*.pdf
+
+# Go (root-level, API/ has its own .gitignore)
+bin/
+*.out
+coverage.txt
+
+# Project handoff document (internal, not repo content)
+HANDOFF.md
+
+# Working context used during PRD creation — not part of the codebase
+Documentation/
+
+# QA audit reports (internal tooling output, not repo content)
+qa/
+
+# Root-level npm artefact (stray npm install with no package.json)
+/package-lock.json
+
+# Helm downloaded subchart archives (fetched by helm dependency update)
+charts/*/charts/
+
+# Nuxt / Webapp build artifacts
+Webapp/.nuxt/
+Webapp/.output/
+Webapp/.nitro/
+Webapp/.cache/
+Webapp/dist/
+Webapp/node_modules/
+Webapp/coverage/
+
+# kind end-to-end run: generated secrets, certificates, logs and local tools
+scripts/kind-e2e/.work/

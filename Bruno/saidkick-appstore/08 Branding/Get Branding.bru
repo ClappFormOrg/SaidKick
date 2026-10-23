@@ -1,0 +1,34 @@
+meta {
+  name: Get Branding
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/branding
+  body: none
+  auth: none
+}
+
+docs {
+  Instance-wide brand (#158). Anonymous: every page renders with it.
+
+  Response:
+    { colors: { cta, primary, secondary, surface, body_text, border },
+      tokens: { cta, cta_hover, cta_active, cta_subtle, primary, primary_hover,
+                primary_active, primary_subtle, secondary, surface, body_text,
+                border, wedge_start, wedge_mid, wedge_end },
+      is_default, logo: null | { url, width, height, alt },
+      contrast_failures: [], updated_at }
+
+  All colours are lowercase #rrggbb. For the default palette the tokens are
+  the --brand-* values of Webapp/assets/css/govnl.css.
+
+  Caching: no in-process cache on the API, so every replica answers with the
+  latest row. ETag from updated_at, Cache-Control: no-cache; send
+  If-None-Match to get 304 while nothing changed.
+
+  Responses:
+    200 OK
+    304 Not Modified — If-None-Match matches the current ETag
+}

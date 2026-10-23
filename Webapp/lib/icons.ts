@@ -1,0 +1,81 @@
+// The app's icon surface.
+//
+// The @tabler/icons-vue barrel (dist/esm/tabler-icons-vue.mjs) re-exports
+// about 6 000 icons, and importing it anywhere puts all of them in Vite's dep
+// optimizer on every cold dev start. Importing the icons the app uses by their
+// deep path keeps that graph small. Deep imports work because the package
+// declares no `exports` field; types/tabler-icons.d.ts types them.
+//
+// Import icons from '~/lib/icons', never from '@tabler/icons-vue'.
+// tests/unit/icons-barrel.test.ts enforces that.
+//
+// This lives in lib/ rather than utils/ because Nuxt auto-imports every named
+// export from utils/ and composables/.
+//
+// Keep the list alphabetical when adding an icon.
+export { default as IconAlertCircle } from '@tabler/icons-vue/dist/esm/icons/IconAlertCircle.mjs'
+export { default as IconAlertTriangle } from '@tabler/icons-vue/dist/esm/icons/IconAlertTriangle.mjs'
+export { default as IconApps } from '@tabler/icons-vue/dist/esm/icons/IconApps.mjs'
+export { default as IconArrowLeft } from '@tabler/icons-vue/dist/esm/icons/IconArrowLeft.mjs'
+export { default as IconArrowRight } from '@tabler/icons-vue/dist/esm/icons/IconArrowRight.mjs'
+export { default as IconBrandGithub } from '@tabler/icons-vue/dist/esm/icons/IconBrandGithub.mjs'
+export { default as IconBuilding } from '@tabler/icons-vue/dist/esm/icons/IconBuilding.mjs'
+export { default as IconCertificate } from '@tabler/icons-vue/dist/esm/icons/IconCertificate.mjs'
+export { default as IconChartLine } from '@tabler/icons-vue/dist/esm/icons/IconChartLine.mjs'
+export { default as IconCheck } from '@tabler/icons-vue/dist/esm/icons/IconCheck.mjs'
+export { default as IconChevronDown } from '@tabler/icons-vue/dist/esm/icons/IconChevronDown.mjs'
+export { default as IconChevronRight } from '@tabler/icons-vue/dist/esm/icons/IconChevronRight.mjs'
+export { default as IconCircleCheck } from '@tabler/icons-vue/dist/esm/icons/IconCircleCheck.mjs'
+export { default as IconCircleNumber1 } from '@tabler/icons-vue/dist/esm/icons/IconCircleNumber1.mjs'
+export { default as IconCircleNumber2 } from '@tabler/icons-vue/dist/esm/icons/IconCircleNumber2.mjs'
+export { default as IconCircleNumber3 } from '@tabler/icons-vue/dist/esm/icons/IconCircleNumber3.mjs'
+export { default as IconCircleNumber4 } from '@tabler/icons-vue/dist/esm/icons/IconCircleNumber4.mjs'
+export { default as IconCircleX } from '@tabler/icons-vue/dist/esm/icons/IconCircleX.mjs'
+export { default as IconClipboardCheck } from '@tabler/icons-vue/dist/esm/icons/IconClipboardCheck.mjs'
+export { default as IconClock } from '@tabler/icons-vue/dist/esm/icons/IconClock.mjs'
+export { default as IconCloud } from '@tabler/icons-vue/dist/esm/icons/IconCloud.mjs'
+export { default as IconCopy } from '@tabler/icons-vue/dist/esm/icons/IconCopy.mjs'
+export { default as IconDatabase } from '@tabler/icons-vue/dist/esm/icons/IconDatabase.mjs'
+export { default as IconDownload } from '@tabler/icons-vue/dist/esm/icons/IconDownload.mjs'
+export { default as IconEdit } from '@tabler/icons-vue/dist/esm/icons/IconEdit.mjs'
+export { default as IconExternalLink } from '@tabler/icons-vue/dist/esm/icons/IconExternalLink.mjs'
+export { default as IconEye } from '@tabler/icons-vue/dist/esm/icons/IconEye.mjs'
+export { default as IconEyeOff } from '@tabler/icons-vue/dist/esm/icons/IconEyeOff.mjs'
+export { default as IconFileCode } from '@tabler/icons-vue/dist/esm/icons/IconFileCode.mjs'
+export { default as IconFileText } from '@tabler/icons-vue/dist/esm/icons/IconFileText.mjs'
+export { default as IconGitBranch } from '@tabler/icons-vue/dist/esm/icons/IconGitBranch.mjs'
+export { default as IconHistory } from '@tabler/icons-vue/dist/esm/icons/IconHistory.mjs'
+export { default as IconInfoCircle } from '@tabler/icons-vue/dist/esm/icons/IconInfoCircle.mjs'
+export { default as IconKey } from '@tabler/icons-vue/dist/esm/icons/IconKey.mjs'
+export { default as IconLanguage } from '@tabler/icons-vue/dist/esm/icons/IconLanguage.mjs'
+export { default as IconLayoutDashboard } from '@tabler/icons-vue/dist/esm/icons/IconLayoutDashboard.mjs'
+export { default as IconLayoutGrid } from '@tabler/icons-vue/dist/esm/icons/IconLayoutGrid.mjs'
+export { default as IconList } from '@tabler/icons-vue/dist/esm/icons/IconList.mjs'
+export { default as IconLock } from '@tabler/icons-vue/dist/esm/icons/IconLock.mjs'
+export { default as IconLogout } from '@tabler/icons-vue/dist/esm/icons/IconLogout.mjs'
+export { default as IconMenu2 } from '@tabler/icons-vue/dist/esm/icons/IconMenu2.mjs'
+export { default as IconMessage } from '@tabler/icons-vue/dist/esm/icons/IconMessage.mjs'
+export { default as IconMessageCircle } from '@tabler/icons-vue/dist/esm/icons/IconMessageCircle.mjs'
+export { default as IconNetwork } from '@tabler/icons-vue/dist/esm/icons/IconNetwork.mjs'
+export { default as IconPalette } from '@tabler/icons-vue/dist/esm/icons/IconPalette.mjs'
+export { default as IconPhoto } from '@tabler/icons-vue/dist/esm/icons/IconPhoto.mjs'
+export { default as IconPlus } from '@tabler/icons-vue/dist/esm/icons/IconPlus.mjs'
+export { default as IconRefresh } from '@tabler/icons-vue/dist/esm/icons/IconRefresh.mjs'
+export { default as IconRobot } from '@tabler/icons-vue/dist/esm/icons/IconRobot.mjs'
+export { default as IconRocket } from '@tabler/icons-vue/dist/esm/icons/IconRocket.mjs'
+export { default as IconScale } from '@tabler/icons-vue/dist/esm/icons/IconScale.mjs'
+export { default as IconSearch } from '@tabler/icons-vue/dist/esm/icons/IconSearch.mjs'
+export { default as IconServer } from '@tabler/icons-vue/dist/esm/icons/IconServer.mjs'
+export { default as IconServer2 } from '@tabler/icons-vue/dist/esm/icons/IconServer2.mjs'
+export { default as IconSettings } from '@tabler/icons-vue/dist/esm/icons/IconSettings.mjs'
+export { default as IconShieldCheck } from '@tabler/icons-vue/dist/esm/icons/IconShieldCheck.mjs'
+export { default as IconShieldLock } from '@tabler/icons-vue/dist/esm/icons/IconShieldLock.mjs'
+export { default as IconShieldSearch } from '@tabler/icons-vue/dist/esm/icons/IconShieldSearch.mjs'
+export { default as IconSparkles } from '@tabler/icons-vue/dist/esm/icons/IconSparkles.mjs'
+export { default as IconThumbUp } from '@tabler/icons-vue/dist/esm/icons/IconThumbUp.mjs'
+export { default as IconTrash } from '@tabler/icons-vue/dist/esm/icons/IconTrash.mjs'
+export { default as IconUpload } from '@tabler/icons-vue/dist/esm/icons/IconUpload.mjs'
+export { default as IconUser } from '@tabler/icons-vue/dist/esm/icons/IconUser.mjs'
+export { default as IconUsers } from '@tabler/icons-vue/dist/esm/icons/IconUsers.mjs'
+export { default as IconWorld } from '@tabler/icons-vue/dist/esm/icons/IconWorld.mjs'
+export { default as IconX } from '@tabler/icons-vue/dist/esm/icons/IconX.mjs'

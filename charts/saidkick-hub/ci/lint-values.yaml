@@ -1,0 +1,12 @@
+# CI lint values — satisfies required fields so helm lint produces no warnings.
+# Never use these values in a real deployment.
+api:
+  secrets:
+    authSessionSecret: "ci-lint-placeholder-minimum-32-bytes"
+    clusterJoinSecret: "ci-lint-placeholder-minimum-32-bytes"
+    databaseUrl: "postgres://saidkick:ci@localhost:5432/saidkick_appstore?sslmode=disable"
+  config:
+    clusterHubAgentEndpoint: "https://agents.ci-lint.example.com:8443"
+  agentListener:
+    servingCertSecret: "ci-lint-agent-listener-tls"
+    clientCASecret: "ci-lint-agent-client-ca"

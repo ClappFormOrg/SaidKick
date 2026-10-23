@@ -1,0 +1,57 @@
+meta {
+  name: Handshake Cluster
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/clusters/{{clusterId}}/handshake
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{joinTokenJwt}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "agent_version": "0.1.0",
+    "csr": "-----BEGIN CERTIFICATE REQUEST-----\n<base64-encoded PKCS#10 CSR>\n-----END CERTIFICATE REQUEST-----"
+  }
+}
+
+docs {
+  One-time bootstrap call made by the sAId-Kick agent immediately after the helm installer runs.
+  Verifies the HS256 join-token, signs the agent's CSR via Vault PKI, and transitions the
+  cluster to state ready.
+
+  Auth:
+    Authorization: Bearer <join_token_jwt>  (issued by POST /clusters, 1-hour TTL, single-use)
+
+  Request body:
+    agent_version  string — semver of the installed agent (stored for observability)
+    csr            string — PEM-encoded PKCS#10 certificate signing request
+
+  Validation / behaviour:
+    1. Extract Bearer token from Authorization header — 401 if missing or malformed.
+    2. Verify HS256 signature and expiry; extract sub (cluster ID) and jti — 401 if invalid or expired.
+    3. Confirm token subject matches the :id path param — 401 if mismatch.
+    4. Load cluster row — 404 if not found.
+    5. Reject if cluster state is decommissioned — 410 gone.
+    6. Bind and validate request body; csr field required — 422 if missing.
+    7. PEM-decode and x509-parse the CSR — 422 if not a valid PKCS#10 block.
+    8. Call Vault PKI SignCSR (CN = saidkick-agent-<id>, TTL = 90 days) — 503 if PKI not configured.
+    9. In one transaction: insert JTI into used_join_tokens (unique constraint burns it) — 410 if already used;
+       update cluster row (state=ready, agent_version, agent_cert_serial, registered_at, last_heartbeat_at).
+    10. Write cluster.agent_bootstrapped to audit_logs (best effort, outside transaction).
+
+  Responses:
+    200 OK                        — { client_cert_pem, ca_pem, hub_endpoint }
+    401 unauthorized              — missing, malformed, or expired join token; or token targets wrong cluster
+    404 not_found                 — cluster not found
+    410 gone                      — cluster decommissioned, or join token already used
+    422 validation_failed         — csr missing or not a valid PEM PKCS#10 certificate request
+    503 vault_pki_not_configured  — VAULT_PKI_MOUNT / VAULT_PKI_ROLE env vars not set
+}

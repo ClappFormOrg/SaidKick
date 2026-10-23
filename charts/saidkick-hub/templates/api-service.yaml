@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "saidkick-hub.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "saidkick-hub.api.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.api.service.type | quote }}
+  selector:
+    {{- include "saidkick-hub.api.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: {{ .Values.api.service.targetPort }}
+      protocol: TCP
+---
+# In-cluster scrape port for GET /metrics, which has no authentication. A
+# Service of its own, always ClusterIP, so setting api.service.type to
+# NodePort or LoadBalancer publishes the http port only.
+# templates/ingress.yaml must never route it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "saidkick-hub.fullname" . }}-api-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "saidkick-hub.api.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "saidkick-hub.api.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: {{ .Values.api.metrics.port }}
+      targetPort: metrics
+      protocol: TCP

@@ -1,0 +1,15 @@
+dependencies:
+- name: postgres-operator
+  repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+  version: 1.15.1
+- name: openbao
+  repository: https://openbao.github.io/openbao-helm
+  version: 0.28.3
+- name: victoria-metrics-single
+  repository: https://victoriametrics.github.io/helm-charts/
+  version: 0.39.0
+- name: argo-cd
+  repository: https://argoproj.github.io/argo-helm
+  version: 8.6.4
+digest: sha256:2ff3d231df3f3c58a62929efb3b1557a17679c0c4fbefa83528ae348aaf4dcf3
+generated: "2026-06-08T13:29:29.4873211+02:00"

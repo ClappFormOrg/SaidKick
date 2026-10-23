@@ -1,0 +1,34 @@
+meta {
+  name: Get Audit Submission
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/audit-submissions/{{auditSubmissionId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+docs {
+  Returns full detail of one audit submission, including form responses, evidence file
+  metadata, app and version context. Auditor role required.
+
+  Validation / behaviour:
+    1. Auditor role required; parse submission ID — 404 if invalid UUID or not found.
+    2. Load submission → AppVersion → App to resolve the owning org.
+    3. Cross-org rule: auditor may not inspect a submission from their own org (403).
+       PlatformAdmin bypasses this check.
+    4. Return full submission object with form_responses, evidence_files, auto_validation_state,
+       auto_validation_errors, and nested app + version context.
+
+  Responses:
+    200 OK                     — full submission detail
+    401 unauthorized           — unauthenticated
+    404 not_found              — submission not found
+    403 same_org_audit_forbidden — auditor belongs to the submitting org
+}

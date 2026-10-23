@@ -1,0 +1,66 @@
+meta {
+  name: Upgrade Deployment
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/deployments/{{deploymentId}}/upgrade
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "app_version_id": "00000000-0000-0000-0000-000000000000",
+    "values": { "replicas": 2, "image": { "tag": "v1.1.0" } },
+    "secret_inputs": {}
+  }
+}
+
+docs {
+  Re-applies a deployment against a new (or the same) published AppVersion,
+  optionally replacing values and/or secrets. Returns 202 Accepted;
+  the orchestrator reconciles asynchronously — subscribe to /events for
+  live progress.
+
+  NOTE: the body:json block above uses the key "app_version_id" — this is
+  incorrect. The handler expects "to_version_id". Update the key before sending.
+
+  Request body:
+    to_version_id      required UUID — must be a published version of the
+                       same app as the existing deployment
+    new_values         optional JSON object — if omitted, the existing
+                       deployment values are reused unchanged
+    new_secret_inputs  optional map<field, value> — new secrets to write
+                       to the store; if omitted, existing secret refs are
+                       forwarded unchanged
+
+  Validation / behaviour:
+    1. Authentication required; Deployer role; caller must own the deployment or be PlatformAdmin.
+    2. Parse deployment ID — 404 if not found.
+    3. Deployment must not be in a terminal or deleting state — 409 deployment_not_upgradeable.
+    4. to_version_id must be a valid UUID, belong to the same app, and be published — 422 otherwise.
+    5. new_values validated against the new version's values.schema.json; secret fields
+       must appear in new_secret_inputs, not new_values — 422 on violation.
+    6. New secrets written to the SecretStore at kv/data/deployments/<id>/<field>.
+    7. Orchestrator.Apply called — on failure, state transitions to failed_orchestrator or
+       pending_orchestrator (transient); on success, state set to applying.
+
+  Responses:
+    202 Accepted                   — updated deployment row (state=applying)
+    401 unauthorized               — unauthenticated
+    403 forbidden                  — caller does not own the deployment
+    404 not_found                  — deployment or version not found
+    409 deployment_not_upgradeable — deployment is in a terminal or deleting state
+    422 validation_failed          — bad UUIDs, schema violation, or wrong app version
+    502 orchestrator_apply_failed  — orchestrator rejected the spec
+    503 orchestrator_not_configured — no ORCHESTRATOR_KIND set
+    503 orchestrator_transient_error — orchestrator temporarily unavailable (retry queued)
+    503 secrets_not_configured     — secret store absent and new_secret_inputs provided
+}

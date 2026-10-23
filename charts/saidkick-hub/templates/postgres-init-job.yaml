@@ -1,0 +1,100 @@
+{{- if .Values.postgresql.enabled }}
+# One-shot Job that runs the SQL init scripts after the Zalando cluster is up.
+# Runs on every helm install/upgrade; all scripts are idempotent.
+#
+# The postgres superuser secret is created by the Zalando operator once the
+# cluster is healthy. The Job uses optional secretKeyRef so the pod can start
+# immediately; it retries (backoffLimit) until the secret exists and the
+# cluster accepts connections.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "saidkick-hub.fullname" . }}-postgresql-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "saidkick-hub.postgres.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    checksum/init-scripts: {{ include (print $.Template.BasePath "/postgres-configmap.yaml") . | sha256sum }}
+spec:
+  backoffLimit: 10
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "saidkick-hub.postgres.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml .Values.postgresql.initJob.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: wait-for-postgres
+          securityContext:
+            {{- toYaml .Values.postgresql.initJob.securityContext | nindent 12 }}
+          image: {{ printf "postgres:%v-alpine" (.Values.postgresql.version | default "17") | quote }}
+          resources:
+            {{- toYaml .Values.postgresql.initJob.resources | nindent 12 }}
+          command:
+            - sh
+            - -c
+            - |
+              echo "waiting for postgresql master to accept connections..."
+              until pg_isready -h "$PGHOST" -p 5432 -U "$PGUSER" -d "$PGDATABASE"; do
+                sleep 5
+              done
+              echo "postgresql is ready"
+          env:
+            - name: PGHOST
+              value: {{ include "saidkick-hub.postgres.clusterName" . | quote }}
+            - name: PGUSER
+              value: postgres
+            - name: PGDATABASE
+              value: {{ .Values.postgresql.database | quote }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.postgres.superuserSecretName" . }}
+                  key: password
+                  optional: true
+      containers:
+        - name: init
+          securityContext:
+            {{- toYaml .Values.postgresql.initJob.securityContext | nindent 12 }}
+          image: {{ printf "postgres:%v-alpine" (.Values.postgresql.version | default "17") | quote }}
+          resources:
+            {{- toYaml .Values.postgresql.initJob.resources | nindent 12 }}
+          command:
+            - sh
+            - -c
+            - |
+              psql -v ON_ERROR_STOP=1 \
+                -f /scripts/01-extensions.sql \
+                -f /scripts/02-roles.sql \
+                -f /scripts/03-grants.sql
+              echo "init scripts completed successfully"
+          env:
+            - name: PGHOST
+              value: {{ include "saidkick-hub.postgres.clusterName" . | quote }}
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: {{ .Values.postgresql.database | quote }}
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.postgres.superuserSecretName" . }}
+                  key: password
+                  optional: true
+          volumeMounts:
+            - name: init-scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: {{ include "saidkick-hub.fullname" . }}-postgresql-init
+{{- end }}

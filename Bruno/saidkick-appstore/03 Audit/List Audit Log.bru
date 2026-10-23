@@ -1,0 +1,44 @@
+meta {
+  name: List Audit Log
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/audit-log?page=1&page_size=20
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+params:query {
+  page: 1
+  page_size: 20
+  ~event_type:
+  ~subject_type:
+  ~subject_id:
+}
+
+docs {
+  Global audit log read. PlatformAdmin only. Ordered by occurred_at DESC.
+  Returns { items, total, page, page_size }.
+
+  Filters (all optional):
+    event_type    e.g. app.created, app.audit_decision, cluster.scope_changed
+    subject_type  app | cluster | deployment | user | ...
+    subject_id    UUID of the affected entity
+    from          RFC3339 timestamp — inclusive lower bound on occurred_at
+    to            RFC3339 timestamp — inclusive upper bound on occurred_at
+    page          1-based (default 1)
+    page_size     1..100 (default 20)
+
+  Every row carries ingest_hash + previous_hash — the chain is
+  verifiable offline by replaying from the genesis row.
+
+  Responses:
+    200 OK   — paginated list
+    403 forbidden — caller lacks platform_admin
+}

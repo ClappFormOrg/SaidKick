@@ -1,0 +1,62 @@
+{
+  "_comment": "Local development seed: fake data only. Applied by `make seed` (go run ./cmd/seed). Safe to re-run.",
+
+  "organizations": [
+    {
+      "slug": "dev-org",
+      "display_name": "Dev Organisation (fake)",
+      "contact_email": "contact@dev-org.example.test"
+    },
+    {
+      "_comment": "Auditors may not decide on their own org's submissions; this org's auditor reviews dev-org's apps.",
+      "slug": "review-org",
+      "display_name": "Review Organisation (fake)",
+      "contact_email": "contact@review-org.example.test"
+    }
+  ],
+
+  "users": [
+    {
+      "email": "platform-admin@dev-org.example.test",
+      "display_name": "Dev Platform Admin",
+      "organization_slug": "dev-org",
+      "roles": ["platform_admin"]
+    },
+    {
+      "email": "org-admin@dev-org.example.test",
+      "display_name": "Dev Org Admin",
+      "organization_slug": "dev-org",
+      "roles": ["org_admin"]
+    },
+    {
+      "email": "cluster-admin@dev-org.example.test",
+      "display_name": "Dev Cluster Admin",
+      "organization_slug": "dev-org",
+      "roles": ["cluster_admin"]
+    },
+    {
+      "email": "developer@dev-org.example.test",
+      "display_name": "Dev Developer",
+      "organization_slug": "dev-org",
+      "roles": ["developer"]
+    },
+    {
+      "email": "auditor@dev-org.example.test",
+      "display_name": "Dev Auditor",
+      "organization_slug": "dev-org",
+      "roles": ["auditor"]
+    },
+    {
+      "email": "deployer@dev-org.example.test",
+      "display_name": "Dev Deployer",
+      "organization_slug": "dev-org",
+      "roles": ["deployer"]
+    },
+    {
+      "email": "auditor@review-org.example.test",
+      "display_name": "Review Auditor",
+      "organization_slug": "review-org",
+      "roles": ["auditor"]
+    }
+  ]
+}

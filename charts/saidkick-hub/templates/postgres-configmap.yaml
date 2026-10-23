@@ -1,0 +1,46 @@
+{{- if .Values.postgresql.enabled }}
+# SQL init scripts executed by the post-install Job (postgres-init-job.yaml).
+# The Job connects as the postgres superuser to {{ .Values.postgresql.database }}
+# before running each file, so \connect directives are not needed.
+#
+# Scripts are idempotent — safe to re-run on every helm upgrade.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "saidkick-hub.fullname" . }}-postgresql-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "saidkick-hub.postgres.labels" . | nindent 4 }}
+data:
+  01-extensions.sql: |
+    -- Required Postgres extensions.
+    -- pgcrypto: gen_random_uuid() fallback; citext: future email columns.
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    CREATE EXTENSION IF NOT EXISTS citext;
+
+  02-roles.sql: |
+    -- Production-shape role separation.
+    --   app_rw       : full DML on every table except audit_logs.
+    --   audit_writer : INSERT-only on audit_logs.
+    DO $body$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN
+            CREATE ROLE app_rw NOINHERIT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'audit_writer') THEN
+            CREATE ROLE audit_writer NOINHERIT;
+        END IF;
+    END
+    $body$;
+    GRANT CONNECT ON DATABASE {{ .Values.postgresql.database }} TO app_rw, audit_writer;
+    GRANT USAGE  ON SCHEMA public                               TO app_rw, audit_writer;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public
+        GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_rw;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public
+        GRANT SELECT ON TABLES TO audit_writer;
+
+  03-grants.sql: |
+    -- Grant the app user the app_rw role so it inherits the correct privilege
+    -- set once GORM runs AutoMigrate and creates the tables.
+    GRANT app_rw TO {{ .Values.postgresql.username }};
+{{- end }}

@@ -1,0 +1,63 @@
+{{- if .Values.postgresql.enabled }}
+# Zalando Postgres Operator cluster.
+# Requires the postgres-operator to be installed cluster-wide:
+#   helm repo add postgres-operator-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+#   helm install postgres-operator postgres-operator-charts/postgres-operator
+apiVersion: acid.zalan.do/v1
+kind: postgresql
+metadata:
+  name: {{ include "saidkick-hub.postgres.clusterName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "saidkick-hub.postgres.labels" . | nindent 4 }}
+spec:
+  teamId: {{ .Values.postgresql.teamId | default "acid" | quote }}
+  numberOfInstances: {{ .Values.postgresql.instances | default 1 }}
+
+  postgresql:
+    version: {{ .Values.postgresql.version | default "17" | quote }}
+    {{- if .Values.postgresql.config }}
+    parameters:
+      {{- range $k, $v := .Values.postgresql.config }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+    {{- end }}
+
+  volume:
+    size: {{ .Values.postgresql.persistence.size | quote }}
+    {{- if .Values.postgresql.persistence.storageClass }}
+    storageClass: {{ .Values.postgresql.persistence.storageClass | quote }}
+    {{- end }}
+
+  # Zalando creates the login role and the database, then the post-install
+  # Job (postgres-init-job.yaml) runs the extension and role SQL on top.
+  users:
+    {{ .Values.postgresql.username | quote }}: []
+
+  databases:
+    {{ .Values.postgresql.database | quote }}: {{ .Values.postgresql.username | quote }}
+
+  resources:
+    requests:
+      cpu: {{ .Values.postgresql.resources.requests.cpu | quote }}
+      memory: {{ .Values.postgresql.resources.requests.memory | quote }}
+    limits:
+      cpu: {{ .Values.postgresql.resources.limits.cpu | quote }}
+      memory: {{ .Values.postgresql.resources.limits.memory | quote }}
+
+  {{- with .Values.postgresql.nodeSelector }}
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            {{- range $k, $v := . }}
+            - key: {{ $k | quote }}
+              operator: In
+              values: [{{ $v | quote }}]
+            {{- end }}
+  {{- end }}
+  {{- with .Values.postgresql.tolerations }}
+  tolerations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,39 @@
+meta {
+  name: Delete Deployment
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/deployments/{{deploymentId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+docs {
+  Initiates asynchronous teardown of a deployment. Returns 202 immediately after
+  marking the row deleting; the orchestrator call and secret purge run in a background goroutine.
+
+  Validation / behaviour:
+    1. Authentication required.
+    2. Parse deployment ID — 404 if not found.
+    3. Deployer must own the deployment or be PlatformAdmin — 403 otherwise.
+    4. If already deleted, returns 204 idempotently.
+    5. Mark row state=deleting (synchronous).
+    6. Background: Orchestrator.Delete removes the Argo CD Application; if Application is already
+       gone it is treated as success.
+    7. Background: SecretStore.DeleteAll purges every secret at kv/data/deployments/<id>/*.
+    8. Background: Row soft-deleted and state set to deleted.
+    9. Background: Write deployment.deleted to audit_logs.
+
+  Responses:
+    202 Accepted   — { id, state: "deleting" }
+    204 No Content — deployment was already deleted (idempotent)
+    401 unauthorized — unauthenticated
+    403 forbidden  — caller does not own this deployment
+    404 not_found  — deployment not found
+}

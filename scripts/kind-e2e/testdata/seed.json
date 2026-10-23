@@ -1,0 +1,39 @@
+{
+  "organizations": [
+    {
+      "slug": "kind-e2e-ops",
+      "display_name": "Kind E2E Operations",
+      "contact_email": "ops@kind-e2e.test"
+    },
+    {
+      "slug": "kind-e2e-apps",
+      "display_name": "Kind E2E App Publisher",
+      "contact_email": "apps@kind-e2e.test"
+    },
+    {
+      "slug": "kind-e2e-audit",
+      "display_name": "Kind E2E Audit Office",
+      "contact_email": "audit@kind-e2e.test"
+    }
+  ],
+  "users": [
+    {
+      "email": "admin@kind-e2e.test",
+      "display_name": "Kind E2E Platform Admin",
+      "organization_slug": "kind-e2e-ops",
+      "roles": ["platform_admin"]
+    },
+    {
+      "email": "dev@kind-e2e.test",
+      "display_name": "Kind E2E Developer and Deployer",
+      "organization_slug": "kind-e2e-apps",
+      "roles": ["developer", "deployer"]
+    },
+    {
+      "email": "auditor@kind-e2e.test",
+      "display_name": "Kind E2E Auditor",
+      "organization_slug": "kind-e2e-audit",
+      "roles": ["auditor"]
+    }
+  ]
+}

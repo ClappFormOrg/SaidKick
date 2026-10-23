@@ -1,0 +1,27 @@
+meta {
+  name: Get Branding Logo
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/branding/logo
+  body: none
+  auth: none
+}
+
+docs {
+  The uploaded logo bytes. Anonymous.
+
+  Always Content-Type: image/png and X-Content-Type-Options: nosniff,
+  whatever the upload declared. ETag from updated_at.
+
+  Browsers never load this URL: the webapp serves the logo from its own
+  origin at /branding/logo (a server route proxying this endpoint), so the
+  webapp CSP's img-src 'self' covers it.
+
+  Responses:
+    200 OK — PNG bytes
+    304 Not Modified — If-None-Match matches
+    404 not_found — no logo set
+}

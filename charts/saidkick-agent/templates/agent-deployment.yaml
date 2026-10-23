@@ -1,0 +1,213 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "saidkick-agent.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "saidkick-agent.labels" . | nindent 4 }}
+spec:
+  # The agent is a single-replica daemon. It holds a stateful identity
+  # (mTLS cert) and a heartbeat loop — horizontal scaling is not meaningful,
+  # so agent.replicaCount should stay 1. Set it to 0 to pause an agent
+  # without uninstalling the release. No `| default 1`: 0 is falsy in Go
+  # templates, so default would turn a deliberate 0 back into 1.
+  replicas: {{ .Values.agent.replicaCount }}
+  strategy:
+    # Recreate (not RollingUpdate) prevents two agents from racing to claim
+    # commands from the same cluster simultaneously.
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "saidkick-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # Roll the pod whenever the Secret content changes (e.g. cert renewal).
+        checksum/secret: {{ include (print $.Template.BasePath "/agent-secret.yaml") . | sha256sum }}
+        {{- if .Values.agent.metrics.annotations }}
+        # Opt-in discovery for annotation-based scrapers (agent.metrics.annotations).
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.agent.metrics.port | quote }}
+        prometheus.io/path: /metrics
+        {{- end }}
+        {{- with .Values.agent.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "saidkick-agent.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "saidkick-agent.serviceAccountName" . }}
+      automountServiceAccountToken: true  # agent needs k8s API access for ESO
+      securityContext:
+        {{- toYaml .Values.agent.podSecurityContext | nindent 8 }}
+      # ── Init container: one-time handshake ──────────────────────────────────
+      # Calls POST /api/v1/clusters/:id/handshake with the join token, receives
+      # the signed mTLS certificate, and patches it back into the credentials
+      # Secret so the main container can mount it without operator intervention.
+      # The init container is idempotent: if a non-expired cert already exists in
+      # the Secret it exits 0 immediately without calling the hub.
+      initContainers:
+        - name: agent-init
+          securityContext:
+            {{- toYaml .Values.agent.securityContext | nindent 12 }}
+          image: {{ include "saidkick-agent.image" . }}
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          command: ["/agent-init"]
+          env:
+            - name: SAIDKICK_HUB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-agent.fullname" . }}-credentials
+                  key: HUB_URL
+            - name: SAIDKICK_CLUSTER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-agent.fullname" . }}-credentials
+                  key: CLUSTER_ID
+            - name: SAIDKICK_JOIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-agent.fullname" . }}-credentials
+                  key: JOIN_TOKEN
+            - name: SAIDKICK_CERT_DIR
+              value: /tmp
+            - name: SAIDKICK_K8S_SECRET_NAME
+              value: {{ include "saidkick-agent.fullname" . }}-credentials
+            - name: SAIDKICK_AGENT_VERSION
+              value: {{ .Chart.AppVersion | quote }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+
+      containers:
+        - name: agent
+          securityContext:
+            {{- toYaml .Values.agent.securityContext | nindent 12 }}
+          image: {{ include "saidkick-agent.image" . }}
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          env:
+            # ── Hub connection ────────────────────────────────────────────────
+            - name: SAIDKICK_HUB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-agent.fullname" . }}-credentials
+                  key: HUB_URL
+            {{- with .Values.agent.hubAgentUrl }}
+            # Agent traffic goes to the hub's dedicated mTLS listener.
+            - name: SAIDKICK_HUB_AGENT_URL
+              value: {{ . | quote }}
+            {{- end }}
+            - name: SAIDKICK_CLUSTER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-agent.fullname" . }}-credentials
+                  key: CLUSTER_ID
+            # ── mTLS cert paths (files mounted from Secret below) ─────────────
+            - name: SAIDKICK_AGENT_CERT
+              value: /var/run/saidkick/tls.crt
+            - name: SAIDKICK_AGENT_KEY
+              value: /var/run/saidkick/tls.key
+            - name: SAIDKICK_HUB_CA
+              value: /var/run/saidkick/ca.crt
+            # ── Certificate renewal ──────────────────────────────────────────
+            # The agent renews its client certificate in place and writes the
+            # new one back to the credentials Secret, so a restart reuses it.
+            - name: SAIDKICK_K8S_SECRET_NAME
+              value: {{ include "saidkick-agent.fullname" . }}-credentials
+            - name: SAIDKICK_CERT_RENEW_BEFORE
+              value: {{ .Values.agent.certRenewBefore | quote }}
+            # ── Dev mode (never true in production) ───────────────────────────
+            - name: SAIDKICK_DEV_MODE
+              value: {{ .Values.agent.devMode | toString | quote }}
+            # ── Argo CD (in-cluster) ──────────────────────────────────────────
+            - name: ARGOCD_SERVER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-agent.fullname" . }}-credentials
+                  key: ARGOCD_SERVER_URL
+            - name: ARGOCD_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-agent.fullname" . }}-credentials
+                  key: ARGOCD_AUTH_TOKEN
+            - name: ARGOCD_NAMESPACE
+              value: {{ .Values.agent.argocd.namespace | quote }}
+            # ── Tuning ───────────────────────────────────────────────────────
+            - name: SAIDKICK_HEARTBEAT_INTERVAL
+              value: {{ .Values.agent.heartbeatInterval | quote }}
+            - name: SAIDKICK_STATUS_INTERVAL
+              value: {{ .Values.agent.statusInterval | quote }}
+            - name: SAIDKICK_AGENT_VERSION
+              value: {{ .Chart.AppVersion | quote }}
+            # ── Health endpoints (/healthz, /readyz) ─────────────────────────
+            - name: SAIDKICK_HEALTH_ADDR
+              value: {{ printf ":%v" .Values.agent.health.port | quote }}
+            # ── Metrics endpoint (/metrics), in-cluster only ──────────────────
+            - name: SAIDKICK_METRICS_ADDR
+              value: {{ printf ":%v" .Values.agent.metrics.port | quote }}
+          ports:
+            - name: health
+              containerPort: {{ .Values.agent.health.port }}
+              protocol: TCP
+            # Unauthenticated: never route this port through an ingress.
+            - name: metrics
+              containerPort: {{ .Values.agent.metrics.port }}
+              protocol: TCP
+          # /healthz: process is alive. /readyz: last successful hub heartbeat
+          # is within 3 heartbeat intervals. No Service exposes this port.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            {{- toYaml .Values.agent.livenessProbe | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            {{- toYaml .Values.agent.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            # mTLS cert material written here by the operator after handshake.
+            - name: cert-store
+              mountPath: /var/run/saidkick
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        # cert-store is projected from the agent-credentials Secret.
+        # The operator writes tls.crt / tls.key / ca.crt after handshake.
+        - name: cert-store
+          secret:
+            secretName: {{ include "saidkick-agent.fullname" . }}-credentials
+            items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+              - key: ca.crt
+                path: ca.crt
+            # optional=true so the pod starts before the operator populates certs;
+            # the agent runs in devMode or logs an error and retries via heartbeat.
+            optional: true
+      {{- with .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

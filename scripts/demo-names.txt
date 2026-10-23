@@ -1,0 +1,13 @@
+# Demo rows to remove from shared environments with API/cmd/cleanup-demo.
+# One entry per line: app:<slug> or cluster:<name>. Lines starting with #
+# are ignored. Names come from issue #39.
+
+app:nginx-demo-app
+
+cluster:Example A
+cluster:Example-A
+cluster:Example-B
+cluster:Example-C
+cluster:Example D
+cluster:asdfasdfasfd
+cluster:voorbeeld

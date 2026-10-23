@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "saidkick-hub.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "saidkick-hub.api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "saidkick-hub.api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # Roll pods when ConfigMap or Secret content changes.
+        checksum/configmap: {{ include (print $.Template.BasePath "/api-configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/api-secret.yaml") . | sha256sum }}
+        {{- with .Values.api.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "saidkick-hub.api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "saidkick-hub.serviceAccountName" . | quote }}
+      securityContext:
+        {{- toYaml .Values.api.podSecurityContext | nindent 8 }}
+      containers:
+        - name: api
+          securityContext:
+            {{- toYaml .Values.api.securityContext | nindent 12 }}
+          image: {{ include "saidkick-hub.api.image" . | quote }}
+          imagePullPolicy: {{ .Values.api.image.pullPolicy | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            # Scraped by VictoriaMetrics; the ingress never routes it.
+            - name: metrics
+              containerPort: {{ .Values.api.metrics.port }}
+              protocol: TCP
+            {{- if .Values.api.agentListener.enabled }}
+            - name: agent-mtls
+              containerPort: {{ .Values.api.agentListener.port }}
+              protocol: TCP
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "saidkick-hub.fullname" . }}-api
+          env:
+            # Sensitive values injected from Secret individually so they
+            # are never logged or visible in kubectl describe pod.
+            - name: AUTH_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: AUTH_SESSION_SECRET
+            - name: AUTH_SECRET_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: AUTH_SECRET_ENCRYPTION_KEY
+                  optional: true
+            - name: CLUSTER_JOIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: CLUSTER_JOIN_SECRET
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: DATABASE_URL
+            - name: AUDIT_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: AUDIT_DATABASE_URL
+                  optional: true
+            - name: VAULT_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: VAULT_ADDR
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: VAULT_TOKEN
+            - name: GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: GITHUB_APP_ID
+                  optional: true
+            - name: GITHUB_APP_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: GITHUB_APP_PRIVATE_KEY
+                  optional: true
+            - name: GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "saidkick-hub.api.secretName" . | quote }}
+                  key: GITHUB_WEBHOOK_SECRET
+                  optional: true
+          livenessProbe:
+            {{- toYaml .Values.api.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.api.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.api.agentListener.enabled }}
+            - name: agent-tls
+              mountPath: /etc/saidkick/agent-tls
+              readOnly: true
+            - name: agent-client-ca
+              mountPath: /etc/saidkick/agent-ca
+              readOnly: true
+            {{- end }}
+      volumes:
+        # readOnlyRootFilesystem=true requires a writable /tmp for any
+        # temp files the Go runtime or TLS stack needs.
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.api.agentListener }}
+        {{- if .enabled }}
+        # Agent listener serving certificate (kubernetes.io/tls Secret).
+        - name: agent-tls
+          secret:
+            secretName: {{ required "api.agentListener.servingCertSecret is required when api.agentListener.enabled=true" .servingCertSecret | quote }}
+            items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+        # CA of the Vault PKI mount that signs agent certificates at handshake.
+        - name: agent-client-ca
+          secret:
+            secretName: {{ required "api.agentListener.clientCASecret is required when api.agentListener.enabled=true" .clientCASecret | quote }}
+            items:
+              - key: {{ .clientCAKey | quote }}
+                path: {{ .clientCAKey | quote }}
+        {{- end }}
+        {{- end }}
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

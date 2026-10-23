@@ -1,0 +1,47 @@
+{{- include "saidkick-hub.agentListener.validate" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "saidkick-hub.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "saidkick-hub.api.labels" . | nindent 4 }}
+data:
+  APP_ENV: {{ .Values.api.config.appEnv | quote }}
+  APP_DEV_MODE: "false"
+  HTTP_ADDR: {{ .Values.api.config.httpAddr | quote }}
+  HTTP_READ_TIMEOUT: {{ .Values.api.config.httpReadTimeout | quote }}
+  HTTP_WRITE_TIMEOUT: {{ .Values.api.config.httpWriteTimeout | quote }}
+  HTTP_IDLE_TIMEOUT: {{ .Values.api.config.httpIdleTimeout | quote }}
+  HTTP_SHUTDOWN_TIMEOUT: {{ .Values.api.config.httpShutdownTimeout | quote }}
+  HTTP_TRUSTED_PROXIES: {{ .Values.api.config.httpTrustedProxies | quote }}
+  METRICS_ADDR: {{ printf ":%v" .Values.api.metrics.port | quote }}
+  AUTH_BASE_URL: {{ .Values.api.config.authBaseUrl | quote }}
+  AUTH_COOKIE_DOMAIN: {{ .Values.api.config.authCookieDomain | quote }}
+  AUTH_SESSION_TTL: {{ .Values.api.config.authSessionTtl | quote }}
+  ORCHESTRATOR_KIND: {{ .Values.api.config.orchestratorKind | quote }}
+  VAULT_MOUNT: {{ .Values.api.config.vaultMount | quote }}
+  VAULT_PKI_MOUNT: {{ .Values.api.config.vaultPkiMount | quote }}
+  VAULT_PKI_ROLE: {{ .Values.api.config.vaultPkiRole | quote }}
+  CLUSTER_HUB_ENDPOINT: {{ .Values.api.config.clusterHubEndpoint | default .Values.api.config.authBaseUrl | quote }}
+  {{- with .Values.api.config.clusterHubAgentEndpoint }}
+  CLUSTER_HUB_AGENT_ENDPOINT: {{ . | quote }}
+  {{- end }}
+  AGENT_CHART_REPO: {{ .Values.api.config.agentChartRepo | quote }}
+  # Both charts are stamped with the same release version, so the hub's
+  # appVersion is the agent chart version published with it.
+  AGENT_CHART_VERSION: {{ .Chart.AppVersion | quote }}
+  {{- with .Values.api.agentListener }}
+  {{- if .enabled }}
+  AGENT_TLS_ADDR: {{ printf ":%v" .port | quote }}
+  AGENT_TLS_CERT_FILE: "/etc/saidkick/agent-tls/tls.crt"
+  AGENT_TLS_KEY_FILE: "/etc/saidkick/agent-tls/tls.key"
+  AGENT_CLIENT_CA_FILE: {{ printf "/etc/saidkick/agent-ca/%s" .clientCAKey | quote }}
+  {{- end }}
+  {{- end }}
+  AUTH_CORS_ALLOWED_ORIGINS: {{ .Values.api.config.corsAllowedOrigins | quote }}
+  AUTH_OIDC_PROVIDER_CACHE_TTL: {{ .Values.api.config.oidcProviderCacheTtl | quote }}
+  SARIF_GATE_MODE: {{ .Values.api.config.sarifGateMode | default "report" | quote }}
+  {{- if .Values.api.config.vaultAppRoleMount }}
+  VAULT_APPROLE_MOUNT: {{ .Values.api.config.vaultAppRoleMount | quote }}
+  {{- end }}

@@ -1,0 +1,31 @@
+meta {
+  name: List Members
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/orgs/{{orgSlug}}/members
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+docs {
+  Returns every user provisioned in an organisation with their active roles.
+
+  Validation / behaviour:
+    1. Authentication required.
+    2. OrgAdmin may only list their own org; PlatformAdmin may list any.
+    3. Results ordered by display_name ASC.
+    4. Each user entry includes id, email, display_name, active roles, last_login_at, created_at.
+
+  Responses:
+    200 OK         — { items: [User+Roles] }
+    401 unauthorized — unauthenticated
+    403 forbidden  — OrgAdmin trying to list a different org
+    404 not_found  — organisation slug not found
+}

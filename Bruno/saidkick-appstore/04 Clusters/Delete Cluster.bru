@@ -1,0 +1,34 @@
+meta {
+  name: Delete Cluster
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/clusters/{{clusterId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+docs {
+  Removes a cluster record. Requires ClusterAdmin (own org) or PlatformAdmin.
+
+  Validation / behaviour:
+    1. Authentication required.
+    2. Parse cluster ID — 404 if not a valid UUID or not found.
+    3. ClusterAdmin may only delete clusters owned by their own org; PlatformAdmin may delete any.
+    4. Refuse if any non-terminal deployments (state not in deleted/failed_*) exist on the cluster.
+    5. Hard-delete the cluster row.
+    6. Write cluster.deleted to audit_logs.
+
+  Responses:
+    204 No Content         — deleted
+    401 unauthorized       — unauthenticated
+    403 forbidden          — ClusterAdmin trying to delete outside their org
+    404 not_found          — cluster not found
+    409 active_deployments_blocking — drain deployments first
+}

@@ -1,0 +1,44 @@
+meta {
+  name: Decide Audit Submission
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/audit-submissions/{{auditSubmissionId}}/decision
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "decision": "approve",
+    "rationale": "Reviewed DPIA, SARIF scan (no high-CVSS findings), accessibility statement covers WCAG 2.2 AA. Approved."
+  }
+}
+
+docs {
+  One of three decisions:
+    approve         → AppVersion → published, App → published,
+                      App.current_published_version_id = this version,
+                      previously published version (if any) ? rejected
+    request_changes → AppVersion → needs_changes, App → needs_changes
+    reject          → AppVersion → rejected (App unaffected)
+
+  Validation:
+    decision  must be approve | request_changes | reject
+    rationale required, >= 20 chars
+
+  Errors:
+    403 same_org_audit_forbidden
+    409 already_decided
+    422 validation_failed (decision invalid / rationale too short)
+
+  Writes an `app.audit_decision` row to audit_logs (via the dedicated
+  audit-writer pool, hash-chained).
+}

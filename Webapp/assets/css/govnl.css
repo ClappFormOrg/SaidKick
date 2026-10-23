@@ -1,0 +1,192 @@
+/* GovNL Design System — Colors & Typography */
+/* Self-hosted (Fontsource, OFL): the CSP allows fonts and styles from the
+   webapp's own origin only. */
+@import "@fontsource/fira-sans/300.css";
+@import "@fontsource/fira-sans/400.css";
+@import "@fontsource/fira-sans/500.css";
+@import "@fontsource/fira-sans/600.css";
+@import "@fontsource/fira-sans/700.css";
+@import "@fontsource/fira-sans/800.css";
+@import "@fontsource/geist-mono/400.css";
+@import "@fontsource/geist-mono/500.css";
+@import "@fontsource/geist-mono/600.css";
+
+:root {
+  --govnl-color-wit: #ffffff;
+  --govnl-color-zwart: #000000;
+  --govnl-color-grijs-50:  #F8FAFC;
+  --govnl-color-grijs-100: #F1F5F9;
+  --govnl-color-grijs-200: #E2E8F0;
+  --govnl-color-grijs-300: #CBD5E1;
+  --govnl-color-grijs-400: #94A3B8;
+  --govnl-color-grijs-500: #64748B;
+  --govnl-color-grijs-600: #475569;
+  --govnl-color-grijs-700: #334155;
+  --govnl-color-grijs-800: #1E293B;
+  --govnl-color-grijs-900: #0F172A;
+  --govnl-color-lintblauw-50:  #DCE3EA;
+  --govnl-color-lintblauw-100: #B4BFCD;
+  --govnl-color-lintblauw-200: #7E92AB;
+  --govnl-color-lintblauw-300: #4F7196;
+  --govnl-color-lintblauw-400: #2A5587;
+  --govnl-color-lintblauw-500: #154273;
+  --govnl-color-lintblauw-600: #11355C;
+  --govnl-color-lintblauw-700: #0D2845;
+  --govnl-color-lintblauw-800: #0A2750;
+  --govnl-color-lintblauw-900: #051426;
+  --govnl-color-hemelblauw-50:  #E1F0FA;
+  --govnl-color-hemelblauw-100: #B7DAF1;
+  --govnl-color-hemelblauw-200: #8BC5E8;
+  --govnl-color-hemelblauw-300: #4FB0DD;
+  --govnl-color-hemelblauw-400: #28A0D5;
+  --govnl-color-hemelblauw-500: #007BC7;
+  --govnl-color-hemelblauw-600: #006AAE;
+  --govnl-color-hemelblauw-700: #005A91;
+  --govnl-color-hemelblauw-800: #004878;
+  --govnl-color-mintgroen-100: #CFEAE0;
+  --govnl-color-mintgroen-300: #75C8AA;
+  --govnl-color-groen-50:  #E8F4ED;
+  --govnl-color-groen-300: #6DA88B;
+  --govnl-color-groen-400: #399064;
+  --govnl-color-groen-500: #1E7D45;
+  --govnl-color-groen-700: #0F5F30;
+  --govnl-color-donkergroen-500: #275937;
+  --govnl-color-donkergroen-700: #173821;
+  --govnl-color-mosgroen-500: #8F9F2B;
+  --govnl-color-bruin-100: #ECE0D0;
+  --govnl-color-bruin-300: #C8AE7E;
+  --govnl-color-bruin-500: #94710A;
+  --govnl-color-bruin-700: #5C460A;
+  --govnl-color-robijnrood-50:  #F6DDE7;
+  --govnl-color-robijnrood-100: #EFBBCF;
+  --govnl-color-robijnrood-500: #CA005D;
+  --govnl-color-robijnrood-600: #A30049;
+  --govnl-color-robijnrood-700: #7D0038;
+  --govnl-color-rood-50:  #FBEAE8;
+  --govnl-color-rood-100: #F5CCC9;
+  --govnl-color-rood-200: #EDADA9;
+  --govnl-color-rood-300: #E58379;
+  --govnl-color-rood-400: #DC6059;
+  --govnl-color-rood-500: #D52B1E;
+  --govnl-color-rood-600: #B82217;
+  --govnl-color-rood-700: #94170E;
+  --govnl-color-oranje-50:  #FEF1E6;
+  --govnl-color-oranje-100: #FDE3CD;
+  --govnl-color-oranje-200: #FAC79B;
+  --govnl-color-oranje-300: #F2A45C;
+  --govnl-color-oranje-400: #F08030;
+  --govnl-color-oranje-500: #EC6608;
+  --govnl-color-oranje-600: #D55A06;
+  --govnl-color-oranje-700: #B84D04;
+  --govnl-color-geel-50:  #FEFCE7;
+  --govnl-color-geel-100: #FCEFAB;
+  --govnl-color-geel-200: #FAE472;
+  --govnl-color-geel-300: #F8D43D;
+  --govnl-color-geel-400: #F7CD28;
+  --govnl-color-geel-500: #F9E11E;
+  --govnl-color-geel-600: #DCB908;
+  --govnl-color-geel-700: #B89405;
+  --govnl-color-roze-50:  #FCF0F5;
+  --govnl-color-roze-100: #F6DDE7;
+  --govnl-color-roze-300: #E289B1;
+  --govnl-color-roze-500: #C71E70;
+  --govnl-color-roze-700: #8B0F4D;
+  --govnl-color-paars-300: #99AAFF;
+  --govnl-color-paars-500: #9747FF;
+  /* Semantic colour roles (document, interaction, line, form control) used
+     to live here as --govnl-* variables. The --brand-* block below replaced
+     them (#156): themeable roles read --brand-*, greys and feedback colours
+     use the ramps above. The focus ring takes the CTA colour. */
+  --govnl-focus-outline-color: var(--brand-cta);
+  --govnl-focus-outline-offset: 2px;
+  --govnl-focus-outline-width: 3px;
+  /* Fira Sans first (#156, Q5). RijksSans joins once there is a licence and
+     self-hosted files in public/fonts/. */
+  --govnl-font-family-sans: "Fira Sans", Arial, Verdana, sans-serif;
+  --govnl-font-family-secondary: "Fira Sans", Arial, Verdana, sans-serif;
+  --govnl-font-family-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --govnl-font-weight-regular: 400;
+  --govnl-font-weight-semibold: 550;
+  --govnl-font-weight-bold: 700;
+  --govnl-font-weight-extrabold: 800;
+  --govnl-font-size-xs: 0.875rem;
+  --govnl-font-size-sm: 1rem;
+  --govnl-font-size-md: 1.125rem;
+  --govnl-font-size-lg: 1.25rem;
+  --govnl-font-size-xl: 1.5rem;
+  --govnl-font-size-2xl: 2rem;
+  --govnl-font-size-3xl: 2.5rem;
+  --govnl-font-size-4xl: 3rem;
+  --govnl-line-height-sm: 1.25;
+  --govnl-line-height-md: 1.5;
+  --govnl-space-1: 0.25rem;
+  --govnl-space-2: 0.5rem;
+  --govnl-space-3: 0.75rem;
+  --govnl-space-4: 1rem;
+  --govnl-space-5: 1.5rem;
+  --govnl-space-6: 2rem;
+  --govnl-space-7: 2.5rem;
+  --govnl-space-8: 3rem;
+  --govnl-space-9: 4rem;
+  --govnl-space-10: 5rem;
+  --govnl-radius-none: 0;
+  --govnl-radius-sm: 4px;
+  --govnl-radius-md: 8px;
+  --govnl-radius-lg: 20px;
+  --govnl-radius-xl: 40px;
+  --govnl-radius-full: 9999px;
+  --govnl-shadow-1: 0 1px 2px rgba(10,39,80,0.06);
+  --govnl-shadow-2: 0 2px 6px rgba(10,39,80,0.08);
+  --govnl-shadow-3: 0 8px 24px rgba(10,39,80,0.12);
+  --govnl-container-max: 1280px;
+  --govnl-container-pad-x: 1.5rem;
+}
+
+/* Semantic brand tokens (#156). Tailwind's `brand-*` colours resolve through
+   these variables, so a brand can recolour the site at runtime by overriding
+   them in a later `:root` block. This repo owns the values.
+
+   The defaults point at the GovNL ramps above, so the site renders exactly as
+   it did before the layer existed. The feedback and grey ramps stay literal
+   and are not themeable. */
+:root {
+  --brand-cta: var(--govnl-color-robijnrood-500);
+  --brand-cta-hover: var(--govnl-color-robijnrood-600);
+  --brand-cta-active: var(--govnl-color-robijnrood-700);
+  --brand-cta-subtle: var(--govnl-color-robijnrood-50);
+  --brand-primary: var(--govnl-color-lintblauw-500);
+  --brand-primary-hover: var(--govnl-color-lintblauw-600);
+  --brand-primary-active: var(--govnl-color-lintblauw-700);
+  --brand-primary-subtle: var(--govnl-color-lintblauw-50);
+  --brand-secondary: var(--govnl-color-hemelblauw-50);
+  --brand-surface: var(--govnl-color-grijs-100);
+  --brand-body: var(--govnl-color-grijs-900);
+  --brand-border: var(--govnl-color-grijs-300);
+  --brand-white: var(--govnl-color-wit);
+  /* A whole gradient rather than three colours: its dark stop is
+     lintblauw-800, which a brand's primary colour cannot derive. */
+  --brand-wedge-gradient: linear-gradient(135deg, #0A2750 0%, #154273 55%, #1B5391 100%);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--govnl-font-family-sans);
+  font-size: var(--govnl-font-size-sm);
+  line-height: var(--govnl-line-height-md);
+  color: var(--brand-body);
+  background: var(--brand-white);
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: var(--govnl-container-max);
+  margin: 0 auto;
+}
+
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: var(--govnl-focus-outline-width) solid var(--govnl-focus-outline-color);
+  outline-offset: var(--govnl-focus-outline-offset);
+  box-shadow: 0 0 0 5px var(--govnl-color-grijs-900);
+}

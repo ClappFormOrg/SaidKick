@@ -1,0 +1,46 @@
+{
+  "_comment": "Copy to seed.json, fill in your values, then: go run ./cmd/seed seed.json",
+
+  "organizations": [
+    {
+      "slug": "platform",
+      "display_name": "Platform Operator",
+      "contact_email": "platform@example.com",
+      "oidc_issuer": "https://login.microsoftonline.com/<tenant-id>/v2.0",
+      "oidc_client_id": "<azure-app-client-id>",
+      "oidc_client_secret_env": "PLATFORM_OIDC_SECRET"
+    },
+    {
+      "_comment": "Add more federations here — no OIDC = org is created without federation",
+      "slug": "provincie-voorbeeld",
+      "display_name": "Provincie Voorbeeld",
+      "contact_email": "admin@example.nl",
+      "oidc_issuer": "https://login.microsoftonline.com/<tenant-id>/v2.0",
+      "oidc_client_id": "<client-id>",
+      "oidc_client_secret_env": "VOORBEELD_OIDC_SECRET"
+    }
+  ],
+
+  "users": [
+    {
+      "_comment": "Seeded users get external_subject='seed:<email>' and are linked to their real OIDC sub on first login",
+      "email": "admin@example.com",
+      "display_name": "Platform Admin",
+      "organization_slug": "platform",
+      "roles": [
+        "platform_admin",
+        "org_admin",
+        "cluster_admin",
+        "developer",
+        "auditor",
+        "deployer"
+      ]
+    },
+    {
+      "email": "operator@example.nl",
+      "display_name": "Example Operator",
+      "organization_slug": "provincie-voorbeeld",
+      "roles": ["cluster_admin", "deployer"]
+    }
+  ]
+}

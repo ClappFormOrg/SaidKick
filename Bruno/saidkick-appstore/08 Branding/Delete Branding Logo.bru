@@ -1,0 +1,27 @@
+meta {
+  name: Delete Branding Logo
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/branding/logo
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+docs {
+  Removes the logo; the header shows the default lockup again.
+  platform_admin only. Colours are not touched.
+  Writes branding.logo_deleted to audit_logs with the removed logo's
+  { width, height, alt, size_bytes, sha256 }.
+
+  Responses:
+    200 OK — same body as GET /api/v1/branding
+    401 unauthorized / 403 forbidden — not platform_admin
+    404 not_found — no logo set
+}

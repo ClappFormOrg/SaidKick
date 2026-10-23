@@ -1,0 +1,48 @@
+meta {
+  name: Callback (OIDC)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/auth/callback?code=REPLACE_WITH_CODE&state=REPLACE_WITH_STATE
+  body: none
+  auth: none
+}
+
+params:query {
+  code: REPLACE_WITH_CODE
+  state: REPLACE_WITH_STATE
+}
+
+docs {
+  Completes the OIDC authorization code exchange. This endpoint is called
+  by the IdP after the user authenticates — it should not be called
+  manually. It is documented here for completeness.
+
+  Flow:
+    1. Validate the state cookie (saidkick_state) against the state param
+       — rejects with 400 on mismatch (CSRF guard).
+    2. Exchange the authorization code + PKCE verifier for tokens at the
+       IdP's token_endpoint.
+    3. Verify the id_token signature + audience + expiry.
+    4. JIT-provision the User row (upsert by org_id + external sub);
+       update email, display_name, last_login_at on every login.
+    5. Mint a short-lived HS256 session JWT and set it as the
+       saidkick_session HttpOnly Secure cookie (TTL from AUTH_SESSION_TTL,
+       default 8h).
+    6. Clear the state cookie.
+    7. 302 redirect to the `redirect` URL captured at login start.
+    8. Write a `user.login` entry to audit_logs.
+
+  Responses:
+    302 Found     — redirect to the post-login destination
+    400           — code or state missing, state cookie missing or expired,
+                    state mismatch (CSRF)
+    401           — id_token verification failed
+    404           — organisation not found (org was deleted mid-flow)
+    502           — token exchange failed or OIDC provider unreachable
+
+  NOTE: This is a browser redirect endpoint. It requires the saidkick_state
+  cookie set by GET /auth/login to be present in the request.
+}

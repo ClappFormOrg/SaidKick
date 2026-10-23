@@ -1,0 +1,96 @@
+# appstore.yaml — sAId-Kick AI-Appstore manifest
+# Specificatieversie: appstore.saidkick.nl/v1
+#
+# Plaats dit bestand als "appstore.yaml" in de root van uw GitHub-repository.
+# Vul alle verplichte velden in en verwijder de optionele velden die u niet gebruikt.
+# Zie https://appstore.saidkick.nl/toelating voor de volledige toelatingseisen.
+
+apiVersion: appstore.saidkick.nl/v1
+kind: AppManifest
+
+metadata:
+  # name: unieke slug voor uw applicatie — kleine letters, cijfers en koppeltekens
+  # Minimaal 3 en maximaal 60 tekens. Onveranderlijk na eerste publicatie.
+  name: mijn-ai-applicatie
+
+  # display_name: leesbare naam zoals getoond in de catalogus
+  display_name: Mijn AI-Applicatie
+
+  # vendor: naam van de ontwikkelende organisatie of provincie
+  vendor: Provincie Voorbeeld
+
+  # contact: e-mailadres of URL van de beheerder / helpdesk
+  contact: beheer@provincie-voorbeeld.nl
+
+  # license: SPDX-licentie-identifier van de broncode
+  # Toegestane waarden: EUPL-1.2 | Apache-2.0 | MIT | BSD-3-Clause |
+  #                     GPL-3.0-only | LGPL-3.0-only | MPL-2.0
+  license: EUPL-1.2
+
+spec:
+  chart:
+    # path: relatief pad naar de Helm-chart map in uw repository
+    path: chart/
+    # type: altijd "helm" in versie 1
+    type: helm
+
+  # categories: één of meer categorieën die op de applicatie van toepassing zijn
+  # Toegestane waarden: agent | chatbot | rag | docs | analyse | infrastruct
+  categories:
+    - chatbot
+
+  ai:
+    # risk_class: EU AI Act risicocategorie van uw applicatie
+    # Toegestane waarden: minimal | limited | high
+    risk_class: limited
+
+    # base_model: naam van het basismodel dat de applicatie gebruikt
+    base_model: GEITje-7B-ultra
+
+    # data_residency: locatie van dataverwerking — moet "EU" zijn
+    data_residency: EU
+
+  interfaces:
+    # Beschrijf hoe de applicatie extern te benaderen is.
+    # type "api": opgeven met pad naar de OpenAPI-specificatie
+    - type: api
+      openapi: docs/openapi.yaml
+    # type "mcp": opgeven met serverpad voor MCP-clients
+    # - type: mcp
+    #   server_path: /mcp
+
+  demo:
+    # description: beknopte beschrijving van de functionaliteit (max. 500 tekens)
+    description: >
+      Een AI-assistent voor provinciale medewerkers die vragen over
+      ruimtelijke ordening en vergunningverlening beantwoordt op basis
+      van actuele wet- en regelgeving. Draait volledig on-premise of
+      op SURF-infrastructuur zonder externe datastromen.
+
+    # screenshots: minimaal 3, maximaal 20 afbeeldingen (PNG of JPEG)
+    # Paden zijn relatief ten opzichte van de root van de repository.
+    screenshots:
+      - docs/screenshots/overzicht.png
+      - docs/screenshots/vraagstelling.png
+      - docs/screenshots/antwoord-detail.png
+
+    # video: optioneel — pad naar een MP4-demonstratievideo (max. 100 MB)
+    # video: docs/demo.mp4
+
+  audit:
+    # dpia: Data Protection Impact Assessment — PDF, ondertekend door FG
+    dpia: audit/dpia.pdf
+
+    # security_scan: SARIF 2.1.0 exportbestand van uw laatste beveiligingsscan
+    # Bevindingen met CVSS-score ≥ 7.0 blokkeren automatisch de toelating.
+    security_scan: audit/security-scan.sarif
+
+    # ai_risk: AI-risicobeoordeling conform de EU AI Act (PDF of Markdown)
+    ai_risk: audit/ai-risk-assessment.pdf
+
+    # accessibility: WCAG 2.2 niveau AA toegankelijkheidsrapport (PDF)
+    # Verplicht opgesteld door een onafhankelijk gecertificeerd bureau.
+    accessibility: audit/accessibility-report.pdf
+
+    # model_card: optioneel — model card van het gebruikte basismodel
+    # model_card: audit/model-card.md

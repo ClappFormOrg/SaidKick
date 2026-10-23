@@ -1,0 +1,41 @@
+apiVersion: v2
+name: saidkick-agent
+description: |
+  sAId-Kick Appstore — Spoke (agent) deployment.
+  Installs the sAId-Kick agent, its External Secrets Operator (ESO)
+  SecretStore, and an optional Argo CD application controller on a target
+  (spoke) cluster. ESO itself is a prerequisite: install it before this
+  chart (see README). The agent registers with the hub during the Helm
+  post-install hook and then brokers Argo CD syncs and ESO secret pulls on
+  the hub's behalf.
+type: application
+version: 0.2.0
+appVersion: 0.2.0
+maintainers:
+  - name: Clappform
+    email: platform@clappform.com
+    url: https://github.com/ClappFormOrg/SaidKick
+keywords:
+  - saidkick
+  - ai-appstore
+  - govnl
+  - agent
+  - spoke
+dependencies:
+  - name: argo-cd
+    version: 7.x.x
+    repository: https://argoproj.github.io/argo-helm
+    condition: argocd.enabled
+    alias: argocd
+  - name: ingress-nginx
+    version: 4.x.x
+    repository: https://kubernetes.github.io/ingress-nginx
+    condition: ingress-nginx.enabled
+  - name: external-dns
+    version: 1.x.x
+    repository: https://kubernetes-sigs.github.io/external-dns
+    condition: external-dns.enabled
+  - name: cert-manager
+    version: v1.x.x
+    repository: https://charts.jetstack.io
+    condition: cert-manager.enabled

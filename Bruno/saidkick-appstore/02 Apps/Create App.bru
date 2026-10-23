@@ -1,0 +1,46 @@
+meta {
+  name: Create App
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/apps
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "github_installation_id": 12345678,
+    "repo_owner": "ClappFormOrg",
+    "repo_name": "govchat",
+    "branch": "main"
+  }
+}
+
+docs {
+  Register a new App from a linked GitHub repository. Requires the
+  Developer role on the calling user.
+
+  Flow:
+    1. resolve `branch` to a commit SHA via the GitHub App
+    2. fetch appstore.yaml + run schema validation
+    3. fetch every declared evidence file + content-type-check
+    4. fetch Chart.yaml + values.schema.json
+    5. persist App + AppVersion + AuditSubmission in one transaction
+    6. write `app.created` to audit_logs
+
+  Returns:
+    201 — created. `app_version.state` will be `draft` until you POST
+          /apps/:slug/submit.
+    422 — manifest or evidence validation failed (see `errors[]`).
+    503 — github_not_configured. Configure GITHUB_APP_* in .env or
+          stub via NullClient.
+    409 — slug or repo already linked.
+}

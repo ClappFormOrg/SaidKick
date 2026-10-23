@@ -1,0 +1,14 @@
+# Local env
+.env
+
+# Build output
+/bin/
+*.exe
+
+# Go test/coverage artefacts
+*.out
+coverage.txt
+
+# IDE
+.idea/
+.vscode/

@@ -1,0 +1,85 @@
+sAId-Kick Hub deployed successfully.
+
+API endpoint:
+{{- if .Values.ingress.enabled }}
+  https://{{ .Values.ingress.host }}/api/v1
+{{- else }}
+  kubectl port-forward svc/{{ include "saidkick-hub.fullname" . }}-api 8080:80 -n {{ .Release.Namespace }}
+  http://localhost:8080/api/v1
+{{- end }}
+
+{{- if .Values.api.agentListener.enabled }}
+
+Agent mTLS listener (spoke agents only, client certificate required):
+  Service {{ include "saidkick-hub.fullname" . }}-api-agent, port {{ .Values.api.agentListener.service.port }}
+  kubectl get svc {{ include "saidkick-hub.fullname" . }}-api-agent -n {{ .Release.Namespace }}
+{{- if .Values.api.config.clusterHubAgentEndpoint }}
+  Agents use: {{ .Values.api.config.clusterHubAgentEndpoint }}
+{{- else }}
+  Set api.config.clusterHubAgentEndpoint to this Service's public address so
+  the agent install command includes agent.hubAgentUrl.
+{{- end }}
+{{- end }}
+
+Health checks:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+  # Liveness
+  curl http://localhost:8080/healthz
+
+  # Readiness (requires DB connection)
+  curl http://localhost:8080/readyz
+
+{{- if .Values.postgresql.enabled }}
+
+PostgreSQL:
+  The in-cluster PostgreSQL instance is running.
+  To connect from your workstation:
+    kubectl port-forward svc/{{ .Release.Name }}-postgresql 5432:5432 -n {{ .Release.Namespace }}
+    psql -h localhost -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }}
+
+  The DATABASE_URL in api.secrets.databaseUrl should point to:
+    postgres://{{ .Values.postgresql.username }}:<password>@{{ include "saidkick-hub.fullname" . }}-postgresql:5432/{{ .Values.postgresql.database }}?sslmode=disable
+
+{{- end }}
+
+{{- if .Values.openbao.enabled }}
+
+OpenBao:
+  The in-cluster OpenBao instance is running. You must initialise and unseal it
+  before the API can write secrets.
+
+  Port-forward to the UI:
+    kubectl port-forward svc/{{ .Release.Name }}-openbao 8200:8200 -n {{ .Release.Namespace }}
+    open http://localhost:8200
+
+  Initialise (first boot only):
+    bao operator init
+
+  Once unsealed, enable the KV v2 engine and PKI engine:
+    bao secrets enable -path=kv kv-v2
+    bao secrets enable pki
+    bao secrets tune -max-lease-ttl=87600h pki
+    bao write pki/root/generate/internal \
+      common_name="sAId-Kick Hub CA" ttl=87600h
+    bao write pki/roles/agent \
+      allowed_domains="saidkick-agent-*" allow_glob_domains=true \
+      use_csr_common_name=false use_csr_sans=false \
+      server_flag=false client_flag=true max_ttl=2160h
+
+  Create the API service token:
+    bao policy write saidkick-api - <<EOF
+    path "kv/data/deployments/*"   { capabilities = ["create","update","read","delete"] }
+    path "kv/metadata/deployments/*" { capabilities = ["list","delete"] }
+    path "pki/sign/agent"          { capabilities = ["update"] }
+    EOF
+    bao token create -policy=saidkick-api -period=720h
+
+  Put the token in api.secrets.vaultToken and upgrade the release.
+
+{{- end }}
+
+Next step — register a spoke cluster:
+  1. Seed a platform admin user (see API/RUNBOOK.md § "Seeding a dev user")
+  2. POST /api/v1/clusters  →  copy the returned helm install command
+  3. Run it on the spoke cluster (see charts/saidkick-agent/README.md)

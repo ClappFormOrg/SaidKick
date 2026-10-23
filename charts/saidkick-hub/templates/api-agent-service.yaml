@@ -1,0 +1,25 @@
+{{- if .Values.api.agentListener.enabled }}
+# Agent mTLS listener. The API terminates TLS on this port itself and requires
+# a client certificate, so this Service must not sit behind a TLS-terminating
+# ingress. Agents use it as agent.hubAgentUrl.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "saidkick-hub.fullname" . }}-api-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "saidkick-hub.apiAgent.labels" . | nindent 4 }}
+  {{- with .Values.api.agentListener.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.api.agentListener.service.type | quote }}
+  selector:
+    {{- include "saidkick-hub.api.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: agent-mtls
+      port: {{ .Values.api.agentListener.service.port }}
+      targetPort: agent-mtls
+      protocol: TCP
+{{- end }}

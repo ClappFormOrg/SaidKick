@@ -1,0 +1,41 @@
+meta {
+  name: Create Organization
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/orgs
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "slug": "gemeente-voorbeeld",
+    "display_name": "Gemeente Voorbeeld",
+    "contact_email": "ai-team@voorbeeld.example.nl"
+  }
+}
+
+docs {
+  Provisions a new organisation tenant. PlatformAdmin only.
+
+  Validation / behaviour:
+    1. Authentication required; PlatformAdmin role enforced.
+    2. slug must match ^[a-z][a-z0-9-]{1,38}[a-z0-9]$ (3–40 chars, kebab-case).
+    3. display_name and contact_email are required non-empty strings.
+    4. Persist Organisation row.
+    5. Write org.created to audit_logs.
+
+  Responses:
+    201 created       — full org object
+    401 unauthorized  — unauthenticated
+    422 validation_failed — slug format invalid or required field missing
+    409 slug_taken    — an organisation with that slug already exists
+}

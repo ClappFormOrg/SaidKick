@@ -1,0 +1,38 @@
+meta {
+  name: Submit App
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/apps/{{appSlug}}/submit
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+docs {
+  Transitions the latest draft (or needs_changes) AppVersion to
+  `submitted`, making it eligible for auditor review. Also transitions
+  the App itself if it was still in draft / needs_changes.
+
+  Auditors from a DIFFERENT org than the developer can then claim the
+  submission from the audit queue. Same-org auditors are blocked
+  server-side (enforced on the decision endpoint).
+
+  Validation:
+    - Developer role + owning-org check.
+    - App must exist and be owned by the caller's org.
+
+  Responses:
+    200 OK   — { state: "submitted", app_version_id: "<uuid>" }
+    401      — unauthenticated
+    403 forbidden — caller does not own this app
+    404 not_found — app slug not found
+    409 already_submitted    — app is already awaiting audit review
+    409 no_submittable_version — no draft or needs_changes version exists;
+                                 create a new version first
+}

@@ -1,0 +1,31 @@
+meta {
+  name: List App Versions
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/apps/{{appSlug}}/versions
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+docs {
+  Returns every AppVersion for an App ordered by created_at DESC.
+
+  Validation / behaviour:
+    1. Authentication required (Developer or Auditor role).
+    2. Look up App by slug — 404 if not found.
+    3. Developer may only list versions of apps owned by their own org; Auditor and PlatformAdmin may access any.
+    4. Returns id, git_ref, git_sha, state, created_at for each version.
+
+  Responses:
+    200 OK          — { items: [AppVersion] }
+    401 unauthorized — unauthenticated
+    403 forbidden   — Developer from a different org
+    404 not_found   — app slug not found
+}

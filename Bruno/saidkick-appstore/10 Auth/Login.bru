@@ -1,0 +1,46 @@
+meta {
+  name: Login (OIDC)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/auth/login?org=provincie-voorbeeld&redirect=/
+  body: none
+  auth: none
+}
+
+params:query {
+  org: provincie-voorbeeld
+  redirect: /
+}
+
+docs {
+  Initiates the OIDC authorization code flow (with PKCE, S256) for the
+  named organisation. Only active in production when APP_DEV_MODE=false
+  and the org has been configured via POST /api/v1/orgs/:slug/oidc.
+
+  Query params:
+    org       required — organisation slug (must match an org row with
+              OIDC configured)
+    redirect  optional — URL to return to after successful login;
+              defaults to /
+
+  Flow:
+    1. Look up the org and resolve its OIDC issuer/client config.
+    2. Generate a PKCE code_verifier + state nonce.
+    3. Store both in a short-lived (5 min) signed state cookie
+       (saidkick_state).
+    4. 302 redirect to the IdP's authorization_endpoint with
+       response_type=code, scope=openid email profile, PKCE challenge.
+
+  Responses:
+    302 Found     — redirect to the IdP login page
+    400           — org query param missing
+    404           — organisation not found
+    400           — OIDC not configured for this org
+    502           — could not reach the OIDC provider discovery endpoint
+
+  NOTE: This endpoint is a browser redirect — it cannot be exercised
+  meaningfully inside Bruno's request runner. Use a browser or curl -L.
+}

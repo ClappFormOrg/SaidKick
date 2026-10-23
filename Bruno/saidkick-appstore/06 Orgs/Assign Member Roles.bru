@@ -1,0 +1,44 @@
+meta {
+  name: Assign Member Roles
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/orgs/{{orgSlug}}/members/{{memberUserId}}/roles
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "roles": ["developer", "deployer"]
+  }
+}
+
+docs {
+  Replaces the active role set for a user in an organisation. OrgAdmin (own org) or PlatformAdmin.
+
+  Validation / behaviour:
+    1. Authentication required.
+    2. user_id param must be a valid UUID — 404 if not found in the org.
+    3. Each role in roles[] must be a known role value; unknown values return 422.
+    4. Only PlatformAdmin may grant or revoke platform_admin or auditor — OrgAdmin gets 403. OrgAdmin may grant app_user.
+    5. Roles in the request not currently held are granted (new RoleAssignment row).
+    6. Roles currently held not in the request are revoked (revoked_at = now, row kept for audit).
+    7. Write role.assigned to audit_logs.
+
+  Valid roles: developer | auditor | deployer | cluster_admin | org_admin | platform_admin | app_user
+
+  Responses:
+    200 OK           — { id, email, display_name, roles }
+    401 unauthorized — unauthenticated
+    403 forbidden    — OrgAdmin targeting another org, or granting platform_admin without authority
+    404 not_found    — org or user not found
+    422 validation_failed — unknown role value
+}

@@ -1,0 +1,42 @@
+meta {
+  name: List Apps
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/apps?status=published&page=1&page_size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  status: published
+  page: 1
+  page_size: 20
+  ~q:
+}
+
+docs {
+  Anonymous-friendly catalogue list. Returns
+  { items: [AppCard], total, page, page_size }. Each card carries the
+  manifest fields (display_name, categories, risk_class, license) and
+  chart_version of its published version.
+
+  Filters:
+    q           free-text LIKE search across slug, repo_owner, repo_name
+    status      App.state filter (default: published)
+    risk_class  filter by AI risk class: minimal | limited | high
+                (reads from published version's appstore.yaml manifest)
+    category    array-containment filter on spec.categories
+                (e.g. "decision-support", "text-generation")
+    page        1-based (default 1, max 1000)
+    page_size   1..100 (default 20)
+
+  Responses:
+    200 OK   — paginated list; items may be empty on a fresh DB. deployed_in_my_org is true when the caller's org runs a live deployment of the app (always false for anonymous)
+    422      — invalid query param shape (rare)
+
+  To produce results: POST /api/v1/apps with a real GitHub repo, then
+  approve via the audit decision flow.
+}

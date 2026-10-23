@@ -1,0 +1,62 @@
+meta {
+  name: Rollback Deployment
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/deployments/{{deploymentId}}/rollback
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "app_version_id": "00000000-0000-0000-0000-000000000000"
+  }
+}
+
+docs {
+  Reverts a deployment to a specific prior AppVersion that passed audit
+  by calling Orchestrator.Rollback with the target GitSHA. Returns 202
+  Accepted; the state transitions asynchronously.
+
+  Request body:
+    to_revision   required UUID — must be a published or archived version
+                  of the same app with an approved audit decision;
+                  typically a prior version retrieved via
+                  GET /api/v1/apps/:slug/versions
+
+  NOTE: the body:json block above uses the key "app_version_id" — this
+  is incorrect; the handler expects "to_revision". Update the key before
+  sending this request.
+
+  Validation / behaviour:
+    1. Authentication required; parse deployment ID — 404 if not found.
+    2. Caller must own the deployment or be PlatformAdmin — 403 otherwise.
+    3. Deployment must not be in a terminal or deleting state.
+    4. Deployment must have an orchestrator reference (last_argocd_app_name).
+    5. to_revision must be a valid UUID, belong to the same app, be in published
+       or archived state, and hold an approved audit decision.
+    6. Orchestrator.Rollback called with target GitSHA; on failure, state set to failed_orchestrator.
+    7. Row app_version_id updated to target; state set to applying.
+    8. Write deployment.rolled_back to audit_logs.
+
+  Responses:
+    202 Accepted     — deployment row (state=applying, updated app_version_id)
+    401 unauthorized — unauthenticated
+    403 forbidden    — caller does not own the deployment
+    404 not_found    — deployment or target version not found
+    409 deployment_not_rollbackable — terminal or deleting state
+    409 no_orchestrator_ref — deployment has no Argo CD reference
+    422 validation   — bad UUID (invalid_uuid), wrong app (wrong_app),
+                       version not published/archived or not audit-approved
+                       (not_rollback_eligible)
+    502 orchestrator_rollback_failed — orchestrator rejected the rollback
+    503 orchestrator_not_configured — no orchestrator configured
+}

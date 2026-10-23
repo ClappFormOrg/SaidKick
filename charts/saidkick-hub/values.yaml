@@ -1,0 +1,531 @@
+# sAId-Kick Hub — default values.
+# Override per-environment with --values values-production.yaml or --set.
+#
+# Required values (no defaults, must be set at install time):
+#   api.secrets.authSessionSecret   — min 32 bytes; openssl rand -base64 32
+#   api.secrets.clusterJoinSecret   — min 32 bytes; openssl rand -base64 32
+#   api.secrets.databaseUrl         — postgres://... connection string
+#   api.config.authBaseUrl          — public base URL of this hub
+#
+# All other values have sensible defaults for a staging environment.
+
+# ---------------------------------------------------------------------------
+# Global
+# ---------------------------------------------------------------------------
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# ---------------------------------------------------------------------------
+# API
+# ---------------------------------------------------------------------------
+api:
+  replicaCount: 2
+
+  image:
+    repository: ghcr.io/clappformorg/saidkick-api
+    pullPolicy: IfNotPresent
+    # Overrides the chart appVersion.
+    tag: ""
+
+  # Non-sensitive configuration — end up in a ConfigMap.
+  config:
+    appEnv: production
+    httpAddr: ":8080"
+    httpReadTimeout: "10s"
+    httpWriteTimeout: "30s"
+    httpIdleTimeout: "120s"
+    httpShutdownTimeout: "15s"
+    # Comma-separated trusted proxy IPs (for X-Real-IP resolution behind
+    # an ingress controller or load balancer).
+    httpTrustedProxies: ""
+
+    # Public base URL of this hub, no trailing slash.
+    # Example: https://appstore.example.nl
+    authBaseUrl: ""
+    # Empty means a host-only session cookie. Set a domain only if the API
+    # and webapp are served from different hosts.
+    authCookieDomain: ""
+    authSessionTtl: "8h"
+
+    # Deployment orchestrator. "agent" is the only kind a production hub
+    # accepts (ADR-4): each spoke's agent drives its own Argo CD, and the hub
+    # holds no spoke or Argo CD credentials. The API refuses "argocd" (and
+    # ARGOCD_* with no kind) unless appEnv is dev/development/local/test/ci;
+    # the direct Argo CD client is for local development outside this chart.
+    orchestratorKind: "agent"
+
+    # OpenBao / Vault KV v2 and PKI mounts.
+    vaultMount: "kv"
+    vaultPkiMount: "pki"
+    vaultPkiRole: "agent"
+
+    # Hub endpoint returned to agents during handshake. Defaults to
+    # authBaseUrl when empty.
+    clusterHubEndpoint: ""
+
+    # Public HTTPS base URL of the agent mTLS listener as agents reach it
+    # (the api.agentListener Service), no trailing slash. Printed as
+    # agent.hubAgentUrl in the agent install command.
+    # Example: https://agents.appstore.example.nl:8443
+    clusterHubAgentEndpoint: ""
+
+    # OCI repository of the published agent chart, no trailing slash. The
+    # agent install command pulls <agentChartRepo>/saidkick-agent at this
+    # chart's appVersion. The charts are published to
+    # oci://ghcr.io/<lower-cased repository owner>/charts.
+    agentChartRepo: "oci://ghcr.io/clappformorg/charts"
+
+    # Comma-separated CORS allowed origins.
+    # REQUIRED when appEnv=production — the API refuses to start without it.
+    # Example: https://appstore.example.nl,https://appstore.other.example.nl
+    corsAllowedOrigins: ""
+
+    # OIDC IdP config cache lifetime (default 10m).
+    oidcProviderCacheTtl: "10m"
+
+    # Vault AppRole auth mount for per-cluster token isolation.
+    # When set, the API logs in with each cluster's role_id + secret_id
+    # and caches the resulting short-lived token. Leave empty to share the
+    # static VAULT_TOKEN across all clusters.
+    vaultAppRoleMount: ""
+
+    # SARIF security-scan gate (SARIF_GATE_MODE): "report" or "enforce".
+    # report blocks only level "error" results with a result-level
+    # security-severity >= 7.0 and reports what the stricter rule would add
+    # (log line, sarif_gate_would_block_total, audit event
+    # sarif_gate.would_block). enforce blocks every result with
+    # security-severity >= 7.0, read from the result or its rule, whatever
+    # its level. Any other value stops the API from booting.
+    sarifGateMode: "report"
+
+  # Sensitive configuration — end up in a Secret.
+  # Leave values empty to provide them via an existingSecret.
+  secrets:
+    # Existing Secret name to use instead of creating one from the values
+    # below. When set, all secret fields below are ignored.
+    existingSecret: ""
+
+    # Required — minimum 32 bytes.
+    # Generate: openssl rand -base64 32
+    authSessionSecret: ""
+
+    # Required for in-DB OIDC secret encryption when Vault is not configured.
+    # Generate: openssl rand -base64 32
+    authSecretEncryptionKey: ""
+
+    # Required — minimum 32 bytes.
+    # Generate: openssl rand -base64 32
+    clusterJoinSecret: ""
+
+    # Required — PostgreSQL connection string.
+    # When postgresql.enabled=true (Zalando Operator) the master service is
+    # named {release}-postgresql (e.g. saidkick-hub-postgresql) on port 5432.
+    # Retrieve the app user password from the Zalando-managed Secret:
+    #   kubectl get secret saidkick.{release}-postgresql.credentials.postgresql.acid.zalan.do \
+    #     -n <namespace> -o jsonpath='{.data.password}' | base64 -d
+    # Then set:
+    #   postgres://saidkick:<password>@{release}-postgresql:5432/saidkick_appstore?sslmode=disable
+    databaseUrl: ""
+
+    # Optional second pool used by the audit logger (INSERT-only role).
+    # Leave empty to share the main pool.
+    auditDatabaseUrl: ""
+
+    # OpenBao / Vault credentials.
+    vaultAddr: ""
+    vaultToken: ""
+
+    # GitHub App credentials (optional — only needed for POST /apps).
+    githubAppId: ""
+    githubAppPrivateKey: ""
+    githubWebhookSecret: ""
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+
+  # Metrics listener (METRICS_ADDR). Serves GET /metrics in Prometheus text
+  # format with no authentication, for in-cluster scrapers only. The
+  # <release>-api-metrics Service exposes it as the "metrics" port and is
+  # always ClusterIP, whatever api.service.type is; the ingress never
+  # routes it.
+  metrics:
+    port: 9090
+
+  # Dedicated agent mTLS listener. The API serves the saidkick-agent routes
+  # (heartbeat, deployment states, command acks) only here: TLS 1.3, and a
+  # client certificate signed by the agent CA is required. The API refuses to
+  # boot without it unless appEnv is dev/development/local/test/ci, and the
+  # chart refuses to render it disabled under any other appEnv.
+  #
+  # The listener terminates TLS itself. Expose it with its own Service (below)
+  # or TCP/TLS passthrough, never through an ingress that terminates TLS.
+  # The API reads both Secrets at startup: restart the API pods after
+  # rotating the serving certificate or the client CA.
+  agentListener:
+    enabled: true
+    port: 8443
+
+    # Serving certificate presented to agents: a kubernetes.io/tls Secret
+    # (tls.crt + tls.key). Agents verify it against ca.crt from the handshake,
+    # so issue it from the same Vault PKI mount (api.config.vaultPkiMount),
+    # e.g. with a separate server-auth role:
+    #   bao write pki/roles/hub-agent-listener allowed_domains=agents.appstore.example.nl \
+    #     allow_bare_domains=true server_flag=true client_flag=false max_ttl=2160h
+    #   bao write -format=json pki/issue/hub-agent-listener common_name=agents.appstore.example.nl
+    # Required when enabled.
+    servingCertSecret: ""
+
+    # Client CA bundle used to verify agent certificates. It must be the CA
+    # of the Vault PKI mount that signs agent CSRs during the handshake (the
+    # ca_pem agent-init receives):
+    #   bao read -field=certificate pki/cert/ca > ca.crt
+    #   kubectl create secret generic saidkick-agent-client-ca --from-file=ca.crt
+    # Required when enabled.
+    clientCASecret: ""
+    clientCAKey: ca.crt
+
+    service:
+      # Agents connect from other clusters, so the listener usually needs an
+      # external address. Use ClusterIP behind a TCP passthrough instead.
+      type: LoadBalancer
+      port: 8443
+      annotations: {}
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    fsGroup: 65534
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+
+# ---------------------------------------------------------------------------
+# Webapp
+# ---------------------------------------------------------------------------
+webapp:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: ghcr.io/clappformorg/saidkick-webapp
+    pullPolicy: IfNotPresent
+    tag: ""
+
+  config:
+    # Origin of the API as the browser sees it, with no path: the webapp
+    # appends /api/v1/... and /auth/... itself. With the bundled ingress the
+    # API shares the webapp's host, so this is the public origin, e.g.
+    # https://appstore.example.com.
+    # A cross-origin API also needs API_BASE_URL set at image build time, or
+    # the webapp's CSP connect-src blocks it.
+    apiBase: ""
+    # Origin the webapp server uses to reach the API: the instance brand
+    # (#158) is fetched during server rendering, and the uploaded logo is
+    # proxied through the webapp's own /branding/logo so the CSP's
+    # img-src 'self' covers it. Empty means the in-cluster API Service,
+    # http://<release>-api.<namespace>.svc:<api.service.port>.
+    apiBaseInternal: ""
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+# Ingress
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  host: appstore.example.com
+  tls:
+    enabled: false
+    secretName: saidkick-hub-tls
+
+# ---------------------------------------------------------------------------
+# PostgreSQL — Zalando Postgres Operator.
+# The operator must be installed cluster-wide before deploying this chart:
+#   helm repo add postgres-operator-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+#   helm install postgres-operator postgres-operator-charts/postgres-operator
+#
+# Disable and provide api.secrets.databaseUrl to use an external database.
+# ---------------------------------------------------------------------------
+postgresql:
+  enabled: true
+
+  # Set operator.enabled=false if the Zalando Postgres Operator is already
+  # installed cluster-wide (e.g. shared by multiple tenants or namespaces).
+  operator:
+    enabled: true
+
+  # Zalando cluster settings.
+  teamId: "acid"      # logical team label; part of the Zalando cluster identity
+  version: "17"       # PostgreSQL major version managed by the operator
+  instances: 1        # set to 2+ for HA (requires at least 2 worker nodes)
+
+  # Application user and database created by the operator.
+  # Credentials are stored in a Zalando-managed Secret:
+  #   {username}.{clusterName}.credentials.postgresql.acid.zalan.do
+  username: saidkick
+  database: saidkick_appstore
+
+  persistence:
+    storageClass: ""  # leave empty to use the cluster default
+    size: 10Gi
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+  # postgresql.conf overrides passed to the Zalando cluster spec.
+  # Mirrors docker/postgres/postgresql.conf.append for dev/prod parity.
+  config:
+    log_min_duration_statement: "200"
+    log_parameter_max_length: "1024"
+    max_connections: "200"
+    work_mem: "16MB"
+    shared_buffers: "256MB"
+    timezone: "UTC"
+
+  # Post-install/upgrade Job that runs the SQL init scripts with psql.
+  # UID/GID 70 is the "postgres" user in the postgres:*-alpine image.
+  initJob:
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 70
+      runAsGroup: 70
+
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: [ALL]
+
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+# Zalando Postgres Operator subchart (postgres-operator-charts/postgres-operator)
+# Only deployed when postgresql.operator.enabled=true.
+# ---------------------------------------------------------------------------
+postgres-operator:
+  # Watch all namespaces by default; restrict with watchedNamespace for
+  # multi-tenant clusters.
+  watchedNamespace: "*"
+  # Operator config map name — must match the name expected by the operator.
+  operatorConfigMapName: postgres-operator
+  enableTeams: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 250Mi
+    limits:
+      cpu: 500m
+      memory: 500Mi
+
+# ---------------------------------------------------------------------------
+# OpenBao subchart (openbao/openbao)
+# Disable and provide vault* values in api.secrets to use an external instance.
+# ---------------------------------------------------------------------------
+openbao:
+  # DEV/EVALUATION DEFAULT ONLY. This default installs a standalone OpenBao
+  # with tls_disable = 1, so its API (port 8200) serves plaintext HTTP inside
+  # the cluster. Do not run it in production. values-production.yaml sets
+  # openbao.enabled=false and points api.secrets.vaultAddr at an external
+  # TLS-enabled OpenBao / Vault.
+  enabled: true
+  # Dev mode: single in-memory node, NOT suitable for production.
+  # Set server.dev.enabled=false and configure HA storage for production.
+  server:
+    dev:
+      enabled: false
+    # For production, use integrated storage (Raft):
+    ha:
+      enabled: false
+      replicas: 3
+    # Standalone (single-replica with persistent volume) is suitable for
+    # small staging environments.
+    standalone:
+      enabled: true
+      config: |
+        ui = true
+        listener "tcp" {
+          tls_disable = 1
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }
+        storage "file" {
+          path = "/openbao/data"
+        }
+    dataStorage:
+      enabled: true
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+# ---------------------------------------------------------------------------
+# VictoriaMetrics subchart (victoria-metrics-single)
+# ---------------------------------------------------------------------------
+victoriametrics:
+  enabled: true
+
+victoria-metrics-single:
+  # Scrape config: picks up the API's /metrics endpoint on its metrics port.
+  server:
+    scrape:
+      enabled: true
+      config:
+        scrape_configs:
+          - job_name: saidkick-api
+            kubernetes_sd_configs:
+              - role: pod
+            relabel_configs:
+              # Keep API pods only. The name half is the chart's
+              # app.kubernetes.io/name label (saidkick-hub.name: the chart
+              # name, or nameOverride), which guards against a co-tenant
+              # chart's api component. Values cannot be templated, so
+              # setting nameOverride requires changing "saidkick-hub" here
+              # to match. ci/check-scrape-config.sh fails when they drift.
+              - source_labels:
+                  - __meta_kubernetes_pod_label_app_kubernetes_io_name
+                  - __meta_kubernetes_pod_label_app_kubernetes_io_component
+                separator: "/"
+                regex: saidkick-hub/api
+                action: keep
+              # Pod discovery yields one target per container port. Keep the
+              # metrics port only; the http port would answer /metrics with 404.
+              - source_labels: [__meta_kubernetes_pod_container_port_name]
+                regex: metrics
+                action: keep
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    persistentVolume:
+      enabled: true
+      size: 10Gi
+
+# ---------------------------------------------------------------------------
+# Argo CD subchart (argo/argo-cd)
+# Off by default: the hub does not run an Argo CD that manages spokes
+# (ADR-4). Each spoke runs its own Argo CD, which the saidkick-agent chart
+# installs and the agent drives.
+# ---------------------------------------------------------------------------
+argocd:
+  enabled: false
+
+argo-cd:
+  global:
+    domain: argocd.appstore.example.com
+  configs:
+    secret:
+      # Bcrypt hash of the Argo CD admin password.
+      # Generate: htpasswd -nbBC 10 "" <password> | tr -d ':\n' | sed 's/$2y/$2a/'
+      argocdServerAdminPassword: ""
+  server:
+    service:
+      type: ClusterIP
+    ingress:
+      enabled: false
+  redis-ha:
+    enabled: false
+  controller:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+  repoServer:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi

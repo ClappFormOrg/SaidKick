@@ -1,0 +1,26 @@
+# gitleaks config for this repository. There is no CI here, so run it
+# yourself before pushing:
+#
+#   gitleaks detect --config .gitleaks.toml
+#
+# It extends the built-in ruleset and allowlists the intentionally-fake
+# placeholder secrets in the chart lint and smoke fixtures and in the dev
+# examples.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Chart fixtures and documented example placeholders — never real credentials"
+paths = [
+  # Helm lint and kind-e2e fixtures — placeholder values only.
+  '''charts/.*/ci/.*\.yaml''',
+  # Example env template — placeholder values only (e.g. VAULT_TOKEN=).
+  '''\.env\.example$''',
+  # Operations runbook — contains illustrative example tokens in prose.
+  '''API/RUNBOOK\.md$''',
+]
+regexes = [
+  '''ci-lint-placeholder[a-z0-9-]*''',
+  # local-dev Postgres DSN (postgres/postgres) in examples and the dev guide
+  '''postgres://postgres:postgres@''',
+]

@@ -1,0 +1,17 @@
+# Helm lint values — satisfies required fields so helm lint produces no warnings.
+# Never use these values in a real deployment.
+#
+# secretStore stays at its default (enabled). The SecretStore template needs
+# the ESO API, so CI renders it with
+#   helm template ... --api-versions external-secrets.io/v1/SecretStore
+# and lints with --set secretStore.enabled=false.
+agent:
+  hubUrl: "https://appstore.ci-lint.example.com"
+  hubAgentUrl: "https://agents.ci-lint.example.com:8443"
+  clusterID: "00000000-0000-0000-0000-000000000000"
+  argocd:
+    serverUrl: "https://argocd.ci-lint.example.com"
+    authToken: "ci-lint-placeholder-token"
+
+vault:
+  addr: "https://vault.ci-lint.example.com"

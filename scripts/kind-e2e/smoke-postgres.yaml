@@ -1,0 +1,104 @@
+# Plain Postgres for the kind end-to-end run — never for real use.
+#
+# scripts/kind-e2e/run.sh applies this into the hub namespace after it has
+# created the "smoke-postgres" Secret, then waits on the Deployment and talks
+# to the Service as postgres://postgres:<password>@smoke-postgres:5432.
+#
+# The image is saidkick-postgres:ci, built from docker/postgres by run.sh and
+# side-loaded into the kind node, so it carries the saidkick_appstore database,
+# pgcrypto and citext, and the app_rw and audit_writer roles. It is never
+# pulled: imagePullPolicy is Never, and a missing image means the build step
+# was skipped.
+#
+# The superuser password is not in this file. run.sh generates it and creates
+# the Secret, so nothing credential-shaped lives in the repository.
+#
+# Storage is the container filesystem: no volume, no persistence. The run is
+# ephemeral and teardown.sh deletes the cluster with it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smoke-postgres
+  labels:
+    app.kubernetes.io/name: smoke-postgres
+    app.kubernetes.io/part-of: saidkick-kind-e2e
+spec:
+  replicas: 1
+  # One pod owning one data directory: never run two at once.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: smoke-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: smoke-postgres
+        app.kubernetes.io/part-of: saidkick-kind-e2e
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: postgres
+          image: saidkick-postgres:ci
+          imagePullPolicy: Never
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            # Both match the image defaults; they are spelled out because the
+            # DSN in run.sh and psql_hub depend on them.
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_DB
+              value: saidkick_appstore
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smoke-postgres
+                  key: password
+          # First boot runs initdb and the scripts in
+          # /docker-entrypoint-initdb.d/ against a temporary server that
+          # listens on the unix socket only. Every probe therefore asks over
+          # TCP: a socket-only pg_isready would pass mid-init, `rollout status`
+          # would return early, and run.sh would dial smoke-postgres:5432
+          # before anything listens there.
+          startupProbe:
+            exec:
+              command: ["pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "saidkick_appstore"]
+            periodSeconds: 5
+            failureThreshold: 40
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "saidkick_appstore"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "saidkick_appstore"]
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smoke-postgres
+  labels:
+    app.kubernetes.io/name: smoke-postgres
+    app.kubernetes.io/part-of: saidkick-kind-e2e
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: smoke-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

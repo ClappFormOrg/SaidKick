@@ -1,0 +1,303 @@
+# sAId-Kick Agent (spoke) — default values.
+#
+# Required values (no defaults, must be set at install time):
+#   agent.hubUrl        — HTTPS base URL of the hub (e.g. https://appstore.example.nl)
+#   agent.clusterID     — UUID returned by POST /api/v1/clusters
+#   agent.joinToken     — one-time JWT from POST /api/v1/clusters (burn-on-handshake)
+#   agent.argocd.serverUrl  — in-cluster Argo CD API URL
+#   agent.argocd.authToken  — Argo CD bearer token
+#   vault.addr          — https:// URL of the OpenBao / Vault instance
+#
+# Prerequisite: External Secrets Operator (ESO) on the spoke when
+# secretStore.enabled is true (the default). Install it first; see README.
+#
+# The full install command is printed by the hub after POST /api/v1/clusters,
+# after the ESO step. The hub fills in hubUrl, clusterID, joinToken and
+# vault.mount, and pins the chart to the hub's version; export the four shell
+# variables before running it:
+#   helm install saidkick-agent oci://ghcr.io/clappformorg/charts/saidkick-agent --version <hub-version> \
+#     --namespace saidkick-system --create-namespace \
+#     --set agent.hubUrl=https://appstore.example.com \
+#     --set agent.hubAgentUrl=https://agents.appstore.example.com:8443 \
+#     --set agent.clusterID=<uuid> \
+#     --set agent.joinToken=<jwt> \
+#     --set agent.argocd.serverUrl="$ARGOCD_SERVER_URL" \
+#     --set agent.argocd.authToken="$ARGOCD_AUTH_TOKEN" \
+#     --set vault.addr="$VAULT_ADDR" \
+#     --set vault.mount=kv \
+#     --set vault.token="$VAULT_TOKEN"
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Namespace where the agent and ESO SecretStore land.
+namespace: saidkick-system
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# ---------------------------------------------------------------------------
+# Agent
+# ---------------------------------------------------------------------------
+agent:
+  image:
+    repository: ghcr.io/clappformorg/saidkick-agent
+    pullPolicy: IfNotPresent
+    tag: ""  # defaults to .Chart.AppVersion
+
+  # HTTPS base URL of the hub — no trailing slash. The agent-init container
+  # calls the one-time handshake here (main API listener, join-token auth).
+  # Example: https://appstore.example.nl
+  hubUrl: ""
+
+  # HTTPS base URL of the hub's agent mTLS listener — no trailing slash.
+  # Heartbeats, state reports and command acks go here; the hub serves the
+  # agent routes only on this listener, which requires the client certificate
+  # issued at handshake. The hub prints it in the install command when it has
+  # CLUSTER_HUB_AGENT_ENDPOINT set. Falls back to hubUrl when empty, which only
+  # works against a dev-mode hub.
+  # Example: https://agents.appstore.example.nl:8443
+  hubAgentUrl: ""
+
+  # UUID of the cluster row on the hub (returned by POST /api/v1/clusters).
+  clusterID: ""
+
+  # One-time JWT minted by POST /api/v1/clusters. Single-use, 1-hour TTL.
+  # Used during the handshake POST /clusters/:id/handshake to obtain the
+  # mTLS client certificate. After handshake completes the cert is stored
+  # in this Secret and the join token is no longer needed.
+  # Do not keep this value in source control after install.
+  joinToken: ""
+
+  # Argo CD connection (in-cluster or in-cluster-namespace service endpoint).
+  argocd:
+    serverUrl: ""
+    authToken: ""
+    # Kubernetes namespace where Argo CD Application CRs are created.
+    namespace: argocd
+
+  # Dev mode: skip mTLS and send X-Agent-Cluster-ID header instead.
+  # NEVER enable in production.
+  devMode: false
+
+  # Heartbeat and status-poll cadences.
+  heartbeatInterval: "30s"
+  statusInterval: "15s"
+
+  # The hub issues 90-day client certificates. The agent renews its
+  # certificate once less than this much validity remains, without a pod
+  # restart, and stores the new one in the credentials Secret.
+  certRenewBefore: "720h"
+
+  # Health endpoints served by the agent on the pod network only (no Service).
+  # /healthz reports the process is alive; /readyz reports ready once a hub
+  # heartbeat succeeded within the last 3 heartbeat intervals.
+  health:
+    port: 8081
+
+  # Prometheus metrics (/metrics) on their own port, separate from the health
+  # probes. The endpoint has no authentication: it is for scrapers inside
+  # this cluster only. Never route this port through an ingress or a
+  # LoadBalancer Service.
+  metrics:
+    port: 9090
+    # ClusterIP Service with a port named "metrics", for scrapers that
+    # discover endpoints or services.
+    service:
+      enabled: true
+    # Scraping is opt-in: a spoke may run no monitoring stack, or one that
+    # must not pick up new targets unasked. true adds prometheus.io/scrape,
+    # prometheus.io/port and prometheus.io/path to the agent pod, the
+    # convention most annotation-based scrape configs honour.
+    annotations: false
+
+  # Probe timings. The httpGet path and port are set by the template.
+  livenessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  replicaCount: 1  # single-replica daemon — do not scale > 1; 0 pauses the agent
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    fsGroup: 65534
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+# Vault / OpenBao connection
+# Used to configure the ESO SecretStore for materialising deployment secrets
+# into Kubernetes Secret objects on this cluster.
+# ---------------------------------------------------------------------------
+vault:
+  # HTTPS URL of the OpenBao / Vault instance.
+  addr: ""
+  # KV v2 mount — must match hub api.config.vaultMount.
+  mount: "kv"
+  # Token with read access to kv/data/deployments/<clusterID>/*.
+  # Obtain from the hub operator after cluster registration.
+  token: ""
+  # TLS CA cert for Vault (PEM inline). Leave empty to use system trust store.
+  caBundle: ""
+
+# ---------------------------------------------------------------------------
+# ESO SecretStore
+# Namespace-scoped SecretStore (NOT ClusterSecretStore) per ESO security
+# guidance — per-namespace credentials, no wildcard policies.
+#
+# ESO is not part of this chart: install it on the spoke first (see README).
+# With enabled=true the install fails unless the cluster serves
+# external-secrets.io/v1 SecretStore. Set enabled=false to skip the store.
+# ---------------------------------------------------------------------------
+secretStore:
+  enabled: true
+  name: saidkick-openbao
+  # Defaults to .Values.namespace.
+  namespace: ""
+  refreshInterval: "1h"
+
+# ---------------------------------------------------------------------------
+# Argo CD spoke subchart (argo/argo-cd)
+# Lightweight spoke: app controller + repo server only. No hub UI.
+# Set argocd.enabled=false if Argo CD is already installed on this cluster.
+# ---------------------------------------------------------------------------
+argocd:
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# ingress-nginx subchart (kubernetes/ingress-nginx)
+# Standard ingress controller. Enable once per cluster. Works on AKS, EKS,
+# Scaleway, GKE, and bare-metal. The cluster admin sets ingress_class_name
+# to "nginx" in the sAId-Kick cluster settings so deployers don't have to
+# know the class name.
+# ---------------------------------------------------------------------------
+ingress-nginx:
+  enabled: false
+  controller:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# ---------------------------------------------------------------------------
+# ExternalDNS subchart (kubernetes-sigs/external-dns)
+# Watches Ingress resources and automatically creates/updates/removes DNS
+# records so deployed apps become reachable at <app>.<base-domain>.
+#
+# Required values:
+#   external-dns.provider      — aws | azure | scaleway | cloudflare | ...
+#   external-dns.domainFilters — list of zones to manage, e.g. ["apps.example.nl"]
+#   external-dns.txtOwnerId    — unique ID per cluster (e.g. cluster slug)
+#                                prevents multi-cluster record conflicts
+#
+# Credentials:
+#   - IRSA / Workload Identity: set serviceAccount.annotations (AWS, AKS)
+#   - Token-based (Scaleway, Cloudflare): set envFrom to reference a Secret
+#     created by the externaldns-credentials template below, or a pre-existing
+#     one managed outside Helm.
+# ---------------------------------------------------------------------------
+external-dns:
+  enabled: false
+  provider: ""
+  domainFilters: []
+  policy: upsert-only     # never auto-delete records (safe default)
+  txtOwnerId: ""          # set to cluster slug, e.g. "example-prod"
+  serviceAccount:
+    annotations: {}       # add IRSA or workload-identity annotation here
+  envFrom: []             # e.g. [{secretRef: {name: externaldns-credentials}}]
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# Inline credentials for token-based ExternalDNS providers (Scaleway,
+# Cloudflare). When non-empty a Secret named externaldns-credentials is
+# created in the agent namespace. Set these via --set or a values file;
+# never commit secrets to source control.
+#
+# Scaleway example:
+#   externalDnsCredentials:
+#     SCW_ACCESS_KEY: "..."
+#     SCW_SECRET_KEY: "..."
+#     SCW_DEFAULT_ORGANIZATION_ID: "..."
+#
+# Cloudflare example:
+#   externalDnsCredentials:
+#     CF_API_TOKEN: "..."
+externalDnsCredentials: {}
+
+# ---------------------------------------------------------------------------
+# cert-manager subchart (jetstack/cert-manager)
+# Automatic TLS certificate provisioning. Enable when deployers want HTTPS.
+# After install, create a ClusterIssuer for Let's Encrypt (see RUNBOOK).
+# ---------------------------------------------------------------------------
+cert-manager:
+  enabled: false
+  installCRDs: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+argo-cd:
+  server:
+    enabled: false
+  dex:
+    enabled: false
+  notifications:
+    enabled: false
+  applicationSet:
+    enabled: true
+  configs:
+    clusterCredentials: []
+  controller:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+  repoServer:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  redis:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi

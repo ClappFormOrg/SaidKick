@@ -1,0 +1,28 @@
+meta {
+  name: Get App
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/apps/{{appSlug}}
+  body: none
+  auth: none
+}
+
+docs {
+  Returns the full AppDetail for one app. Anonymous-friendly for published apps only.
+
+  Validation / behaviour:
+    1. Look up App by slug — 404 if not found.
+    2. Non-published apps return 404 for anonymous callers (no auth, no visibility).
+    3. When a current published AppVersion exists, enriches the response with manifest
+       fields (display_name, categories, risk_class, license), chart_version, values_schema,
+       installs count, auto_validation_state, and audit_approved flag.
+    4. Returns AppDetail: all AppCard fields plus owning_organization_id, owning_user_id,
+       github_installation_id, github_default_branch, repo_link_state, timestamps.
+
+  Responses:
+    200 OK        — AppDetail object; my_deployments lists the caller org's live deployments of the app ({ deployment_id, availability, url? }), [] for anonymous
+    404 not_found — slug not found, or app is not published and caller is anonymous
+}

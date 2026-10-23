@@ -1,0 +1,5 @@
+# Normalise line endings on commit; check out native on Windows, LF elsewhere.
+* text=auto
+
+# Shell scripts run under bash on every OS, including Git Bash on Windows.
+*.sh text eol=lf

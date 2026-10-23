@@ -1,0 +1,64 @@
+meta {
+  name: Create Deployment
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/deployments
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "app_id": "00000000-0000-0000-0000-000000000000",
+    "app_version_id": "00000000-0000-0000-0000-000000000000",
+    "cluster_id": "{{clusterId}}",
+    "namespace": "govchat-dev",
+    "values": { "replicas": 1, "image": { "tag": "v1.0.0" } },
+    "secret_inputs": { "openai_api_key": "sk-replace-me" }
+  }
+}
+
+docs {
+  Initiates a new deployment. Returns 202 Accepted; subscribe to /events for live progress.
+
+  Validation / behaviour:
+    1. Authentication required; Deployer role enforced.
+    2. Validate JSON shape: app_id, app_version_id, cluster_id must be valid UUIDs;
+       namespace must be a DNS-1123 label (1–63 chars, lowercase alnum + hyphen).
+    3. Namespace is prefixed with the last 4 chars of the caller's org UUID:
+       effective_namespace = "<org_suffix>-<namespace>". Total must be <= 63 chars.
+    4. App + AppVersion + Cluster must exist; AppVersion must belong to App and be published.
+    5. Values validated against the version's values.schema.json: secret fields must be in
+       secret_inputs, not values; required non-secret fields must be in values.
+    6. Cluster scope check: caller's org must match the cluster owning org, cluster must be
+       public, or caller must have a ClusterAccessGrant — 403 cluster_not_visible otherwise.
+    7. Cluster must not be decommissioned — 409 cluster_decommissioned.
+    8. Duplicate guard: no other non-deleted deployment of the same App in (cluster, effective_namespace) — 409.
+    9. Pre-mint deployment id (UUIDv7).
+    10. Each entry in secret_inputs written to SecretStore at kv/data/deployments/<id>/<field>;
+        field names must match ^[a-zA-Z][a-zA-Z0-9_]{0,62}$.
+    11. Persist Deployment row (state=pending).
+    12. Orchestrator.Apply() creates the Argo CD Application; on success, row → applying.
+        Transient failure → pending_orchestrator (reconciler retries); permanent → failed_orchestrator.
+
+  Responses:
+    202 Accepted                   — deployment row (state=applying or pending_orchestrator)
+    401 unauthorized               — unauthenticated
+    403 forbidden                  — Deployer role missing or cluster inaccessible
+    404 *_not_found                — app, version, or cluster not found
+    409 duplicate_deployment       — same app already deployed in that cluster + namespace
+    409 cluster_decommissioned     — cluster is no longer accepting deployments
+    422 validation_failed          — bad UUIDs, DNS label, schema violation, or invalid secret field name
+    502 orchestrator_apply_failed  — Argo CD rejected the spec
+    503 orchestrator_not_configured — no ORCHESTRATOR_KIND set
+    503 orchestrator_transient_error — orchestrator temporarily unavailable (deployment queued for retry)
+    503 secrets_not_configured     — secret store absent and secret_inputs provided
+}

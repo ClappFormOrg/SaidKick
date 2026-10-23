@@ -1,0 +1,17 @@
+meta {
+  name: Healthz
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/healthz
+  body: none
+  auth: none
+}
+
+docs {
+  Liveness probe. Does NOT touch the DB so kubelet probes don't cascade
+  outages. Returns 200 {"status":"ok"} unconditionally as long as the
+  HTTP server is up.
+}

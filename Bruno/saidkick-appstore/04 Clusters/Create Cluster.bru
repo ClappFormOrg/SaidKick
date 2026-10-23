@@ -1,0 +1,56 @@
+meta {
+  name: Create Cluster
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/clusters
+  body: json
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "example-aks-dev",
+    "description": "Example AKS dev cluster, agent installed via helm",
+    "scope": "",
+    "orchestrator_cluster_name": ""
+  }
+}
+
+docs {
+  Register a new target cluster and receive a one-time agent join token. Required role: ClusterAdmin or PlatformAdmin.
+
+  Validation / behaviour:
+    1. Authentication required; ClusterAdmin or PlatformAdmin role enforced — 403 otherwise.
+    2. name is required — 422 if empty.
+    3. scope must be "public", "org", or "restricted".
+       ClusterAdmin may only register scope=org for their own org; any other scope is 403.
+       PlatformAdmin may use any scope; for org/restricted, owning_org_id is required.
+    4. Persist Cluster row (state=pending_registration).
+    5. Write cluster.registered to audit_logs.
+    6. Mint a one-time HS256 join-token JWT (1-hour TTL, single-use JTI) bound to the cluster ID.
+
+  Request body:
+    name                      required — display name for the cluster
+    description               optional — human-readable notes
+    scope                     "public", "org", or "restricted" (ClusterAdmin: org only)
+    owning_org_id             required for org/restricted scope when caller is PlatformAdmin
+    orchestrator_cluster_name optional — Argo CD cluster name; defaults to name when omitted
+    ingress_class_name        optional — default ingress class (e.g. "nginx"); pre-fills deploy form
+    base_domain               optional — default base domain (e.g. "apps.example.nl"); pre-fills deploy form
+
+  Responses:
+    201 created            — { cluster, installer: { steps: [{ name, command }], helm_command, join_token_jwt } }
+                             steps run in order: external-secrets (ESO), then saidkick-agent;
+                             helm_command repeats the saidkick-agent step
+    401 unauthorized       — unauthenticated
+    403 forbidden          — ClusterAdmin registering outside their org
+    422 validation_failed  — name missing, invalid scope, or owning_org_id missing for org/restricted
+}

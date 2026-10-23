@@ -1,0 +1,73 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "saidkick-hub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "saidkick-hub.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName | quote }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # API: /api/, the three OIDC endpoints, /healthz and /readyz, all on
+          # the http port. The OIDC endpoints are listed exactly because the
+          # webapp serves /auth/complete, where the API's login redirect
+          # lands. No rule may route the API Service's metrics port: /metrics
+          # has no authentication and is for in-cluster scrapers only. The
+          # main listener answers /metrics with 404.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "saidkick-hub.fullname" . }}-api
+                port:
+                  name: http
+          {{- range list "/auth/login" "/auth/callback" "/auth/logout" }}
+          - path: {{ . }}
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "saidkick-hub.fullname" $ }}-api
+                port:
+                  name: http
+          {{- end }}
+          - path: /healthz
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "saidkick-hub.fullname" . }}-api
+                port:
+                  name: http
+          - path: /readyz
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "saidkick-hub.fullname" . }}-api
+                port:
+                  name: http
+          {{- if .Values.webapp.enabled }}
+          # Webapp — everything else.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "saidkick-hub.fullname" . }}-webapp
+                port:
+                  name: http
+          {{- end }}
+{{- end }}

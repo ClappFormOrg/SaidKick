@@ -1,0 +1,28 @@
+.git/
+.github/
+bin/
+tmp/
+vendor/
+
+# Compiled output
+*.exe
+agent.exe
+drain-audit-dlq.exe
+
+# Environment files — never bake secrets into an image
+.env
+.env.*
+!.env.example
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*.idea/
+.vscode/
+
+# Test artefacts
+coverage.out
+*.test
+
+# Local docs (not needed at runtime)
+RUNBOOK.md

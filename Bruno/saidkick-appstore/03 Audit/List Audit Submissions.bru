@@ -1,0 +1,40 @@
+meta {
+  name: List Audit Submissions
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/audit-submissions?state=submitted&page=1&page_size=20
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User-ID: {{devUserId}}
+}
+
+params:query {
+  state: submitted
+  page: 1
+  page_size: 20
+}
+
+docs {
+  Audit queue. Joined to app_versions so we can filter by version state.
+  Returns { items, total, page, page_size } ordered oldest-first (US-2).
+
+  Auditor role required. The cross-org rule is enforced on the decision
+  endpoint, not here — auditors CAN browse all submissions, they just
+  can't decide on their own org's apps.
+
+  Filters:
+    state       app_versions.state (default: submitted)
+    risk_class  filter by manifest risk class: minimal | limited | high
+    page        1-based (default 1)
+    page_size   1..100 (default 20)
+
+  Responses:
+    200 OK   — paginated list
+    401      — no authenticated principal
+}

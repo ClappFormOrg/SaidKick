@@ -1,0 +1,21 @@
+{{- if .Values.agent.metrics.service.enabled }}
+# In-cluster Service for the agent's /metrics endpoint. The endpoint has no
+# authentication: keep this a ClusterIP Service and never point an ingress
+# or a LoadBalancer at it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "saidkick-agent.fullname" . }}-metrics
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "saidkick-agent.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "saidkick-agent.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: {{ .Values.agent.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+{{- end }}
